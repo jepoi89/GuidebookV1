@@ -1,0 +1,70 @@
+.form-stack { scroll-behavior: smooth; }
+.editor-menu .tabs { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent) 45%, #d7e4e0) transparent; }
+.tab-panel fieldset + fieldset { margin-top: 16px; }
+.section-card textarea { min-height: 112px; }
+.section-card .place-notes { min-height: 84px; }
+.mini-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.preview-panel #assetSummary { font-weight: 850; color: #526766; }
+.help-copy { margin: 0; color: #5f6d6d; line-height: 1.55; }
+.asset-empty {
+  padding: 18px;
+  border: 1px dashed #aebfba;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #fffdf8, #eef6f4);
+  color: #5f6d6d;
+}
+.generated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, #fffdf8);
+  color: var(--shell);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, #d9e5e1);
+  font-weight: 850;
+  font-size: .83rem;
+}
+.section-card input,
+.section-card textarea,
+.section-card select { margin-top: 6px; }
+.section-card label { margin-bottom: 10px; }
+.section-card header strong { font-family: StudioSerif, Georgia, serif; font-size: .98rem; line-height: 1.12; color: #17333a; }
+
+.single-asset-grid { grid-template-columns: minmax(0, 220px); margin-top: 4px; }
+.single-asset-tile img { height: 120px; }
+.single-empty { padding: 14px; font-size: .85rem; }
+
+.theme-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.theme-option { display: block; margin: 0; cursor: pointer; }
+.theme-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.theme-option-card {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: #fffef9;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.theme-option-card strong { display: block; color: #17333a; font-family: StudioSerif, Georgia, serif; font-size: 1.02rem; margin-bottom: 4px; }
+.theme-option-card small { display: block; color: #5f6d6d; line-height: 1.45; font-weight: 500; }
+.theme-option input:checked + .theme-option-card {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 12px 28px rgba(19,45,54,.1);
+  background: color-mix(in srgb, var(--accent) 6%, #fffef9);
+}
+.theme-option:hover .theme-option-card { transform: translateY(-1px); }
+.theme-option input:focus-visible + .theme-option-card {
+  outline: 3px solid color-mix(in srgb, var(--accent) 42%, white);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .mini-meta { grid-template-columns: 1fr; }
+  .tabs { padding-bottom: 14px; }
+}

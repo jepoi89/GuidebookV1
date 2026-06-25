@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guidebook Studio</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/start-style.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand-lockup">
+      <div class="brand-mark">GS</div>
+      <div>
+        <p class="eyebrow">Offline Editor</p>
+        <h1>Guidebook Studio</h1>
+      </div>
+    </div>
+
+    <nav class="nav-stack" aria-label="Primary">
+      <button type="button" class="nav-item" data-action="new-project">New Project</button>
+      <button type="button" class="nav-item" data-action="open-manager">Load Project</button>
+      <button type="button" class="nav-item" data-action="save-project">Save Project</button>
+      <button type="button" class="nav-item primary" data-action="export-guidebook">Download My Guidebook</button>
+      <button type="button" class="nav-item" data-action="export-backup">Download My Progress</button>
+      <label class="nav-item file-nav">
+        Import My Progress
+        <input type="file" id="backupInput" accept="application/json" class="visually-hidden" />
+      </label>
+      <button type="button" class="nav-item" data-action="open-settings">Settings</button>
+    </nav>
+
+    <div class="storage-card">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div>
+        <strong>Stored on this device</strong>
+        <p id="projectCount">0 projects saved</p>
+      </div>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <div class="topbar">
+      <h2 id="workspaceTitle">Untitled guidebook</h2>
+      <div class="topbar-actions">
+        <span class="save-state" id="saveState">Not saved yet</span>
+        <button type="button" class="button solid" data-action="export-guidebook">Download My Guidebook</button>
+      </div>
+    </div>
+
+    <div class="content-grid">
+
+      <section class="editor-panel">
+        <form id="projectForm">
+        <div class="editor-layout" id="editorLayout">
+          <div class="editor-menu" id="editorLayoutMenu">
+            <div class="editor-menu-header">
+              <div>
+                <strong>Editor</strong>
+              </div>
+              <button type="button" class="editor-menu-toggle" id="editorMenuToggle" aria-expanded="true" aria-label="Collapse editor menu">‹</button>
+            </div>
+            <div class="tabs" role="tablist">
+              <button type="button" class="tab is-active" data-tab="info" role="tab"><span class="tab-icon">In</span><span class="tab-label">Project Information</span></button>
+              <button type="button" class="tab" data-tab="property" role="tab"><span class="tab-icon">Pr</span><span class="tab-label">Property &amp; Host</span></button>
+              <button type="button" class="tab" data-tab="pages" role="tab"><span class="tab-icon">Pg</span><span class="tab-label">Content Editor</span></button>
+              <button type="button" class="tab" data-tab="places" role="tab"><span class="tab-icon">Pl</span><span class="tab-label">Nearby Places</span></button>
+              <button type="button" class="tab" data-tab="images" role="tab"><span class="tab-icon">Im</span><span class="tab-label">Image Manager</span></button>
+              <button type="button" class="tab" data-tab="files" role="tab"><span class="tab-icon">Fi</span><span class="tab-label">File Manager</span></button>
+              <button type="button" class="tab" data-tab="theme" role="tab"><span class="tab-icon">Vc</span><span class="tab-label">Visual Customization</span></button>
+            </div>
+          </div>
+
+          <div class="form-stack">
+
+            <div class="tab-panel" data-panel="info">
+              <fieldset>
+                <legend>Project Information</legend>
+                <label>Project Name (for your reference only)
+                  <input type="text" name="projectName" placeholder="e.g. Garden Loft Guidebook" />
+                </label>
+                <div class="two-column">
+                  <label>Website Title
+                    <input type="text" name="title" placeholder="A Practical Offline Guide" />
+                  </label>
+                  <label>Subtitle
+                    <input type="text" name="subtitle" placeholder="Everything guests need in one place" />
+                  </label>
+                </div>
+                <label>Author / Signed by
+                  <input type="text" name="author" placeholder="Your name or property name" />
+                </label>
+                <label>Description
+                  <textarea name="description" placeholder="What is this guidebook for?"></textarea>
+                </label>
+              </fieldset>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="property">
+              <fieldset>
+                <legend>About the Property</legend>
+                <div class="two-column">
+                  <label>Property Name
+                    <input type="text" name="propertyName" placeholder="The Garden Loft" />
+                  </label>
+                  <label>Property Type
+                    <input type="text" name="propertyType" placeholder="Private guest suite" />
+                  </label>
+                </div>
+                <label>Address
+                  <input type="text" name="propertyAddress" placeholder="Street, city, postal code" />
+                </label>
+                <label>Property Description
+                  <textarea name="propertyDescription" placeholder="Describe the space"></textarea>
+                </label>
+                <div class="two-column">
+                  <label>Check-in
+                    <input type="text" name="checkIn" placeholder="3:00 PM" />
+                  </label>
+                  <label>Check-out
+                    <input type="text" name="checkOut" placeholder="11:00 AM" />
+                  </label>
+                </div>
+                <label>House Rules
+                  <textarea name="houseRules" placeholder="Quiet hours, pets, smoking, parking, etc."></textarea>
+                </label>
+              </fieldset>
+
+              <fieldset>
+                <legend>About the Host</legend>
+                <label>Host Name
+                  <input type="text" name="hostName" placeholder="Your name" />
+                </label>
+                <label>Host Bio
+                  <textarea name="hostBio" placeholder="A short, friendly introduction"></textarea>
+                </label>
+                <div class="two-column">
+                  <label>Phone
+                    <input type="text" name="hostPhone" placeholder="Optional" />
+                  </label>
+                  <label>Email
+                    <input type="text" name="hostEmail" placeholder="Optional" />
+                  </label>
+                </div>
+                <label>Contact Note
+                  <textarea name="hostContactNote" placeholder="Best way to reach you, or when to expect a reply"></textarea>
+                </label>
+              </fieldset>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="pages">
+              <div class="section-toolbar">
+                <div>
+                  <h3>Guidebook Pages</h3>
+                  <p class="help-copy">Welcome notes, house instructions, local tips, checklists — add as many pages as your guide needs.</p>
+                </div>
+                <button type="button" class="button solid" id="addSectionBtn">Add Page</button>
+              </div>
+              <div class="dynamic-list" id="sectionsList"></div>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="places">
+              <div class="section-toolbar">
+                <div>
+                  <h3>Nearby Places</h3>
+                  <p class="help-copy">Restaurants, groceries, transit stops, and other local favorites guests will want to know about.</p>
+                </div>
+                <button type="button" class="button solid" id="addPlaceBtn">Add Place</button>
+              </div>
+              <div class="dynamic-list" id="placesList"></div>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="images">
+              <div class="upload-card">
+                <div>
+                  <h3>Gallery Images</h3>
+                  <p class="help-copy">Add multiple photos to the gallery section.</p>
+                </div>
+                <label class="button ghost file-nav">Upload Images<input type="file" id="galleryInput" accept="image/*" multiple class="visually-hidden" /></label>
+              </div>
+              <div class="asset-grid" id="imageList"></div>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="files">
+              <div class="upload-card">
+                <div>
+                  <h3>Downloadable Documents</h3>
+                  <p class="help-copy">PDFs, manuals, maps, or any file guests can download from the guide.</p>
+                </div>
+                <label class="button ghost file-nav">Upload Files<input type="file" id="documentInput" multiple class="visually-hidden" /></label>
+              </div>
+              <div class="asset-list" id="fileList"></div>
+            </div>
+
+            <div class="tab-panel hidden" data-panel="theme">
+
+              <div class="section-toolbar">
+                <div>
+                  <h3>Visual Customization</h3>
+                  <p class="help-copy">Set the logo, background, color scheme, and overall look of your generated website. Everything here updates the live preview instantly.</p>
+                </div>
+              </div>
+
+              <fieldset>
+                <legend>Logo / Profile Photo</legend>
+                <p class="help-copy">Shown at the top of your guidebook. PNG, JPG, or SVG recommended.</p>
+                <div class="upload-card">
+                  <div>
+                    <h3>Logo</h3>
+                    <p class="help-copy">Square images work best.</p>
+                  </div>
+                  <label class="button ghost file-nav">Upload Logo<input type="file" id="logoInput" accept="image/png,image/jpeg,image/svg+xml,image/*" class="visually-hidden" /></label>
+                </div>
+                <div class="asset-grid single-asset-grid" id="logoPreview"></div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Banner Image</legend>
+                <p class="help-copy">A wide hero image displayed below the header.</p>
+                <div class="upload-card">
+                  <div>
+                    <h3>Banner</h3>
+                    <p class="help-copy">Landscape images work best, at least 1200px wide.</p>
+                  </div>
+                  <label class="button ghost file-nav">Upload Banner<input type="file" id="bannerInput" accept="image/*" class="visually-hidden" /></label>
+                </div>
+                <div class="asset-grid single-asset-grid" id="bannerPreview"></div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Background Image</legend>
+                <p class="help-copy">Sets the backdrop behind your entire guidebook website. Pairs with the Color Scheme setting below.</p>
+                <div class="upload-card">
+                  <div>
+                    <h3>Page Background</h3>
+                    <p class="help-copy">A subtle texture, photo, or pattern works well here.</p>
+                  </div>
+                  <label class="button ghost file-nav">Upload Background<input type="file" id="backgroundInput" accept="image/*" class="visually-hidden" /></label>
+                </div>
+                <div class="asset-grid single-asset-grid" id="backgroundPreview"></div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Color Scheme</legend>
+                <p class="help-copy">Controls how content sits on top of your background image.</p>
+                <div class="theme-option-grid" id="overlayOptions">
+                  <label class="theme-option">
+                    <input type="radio" name="overlayStyle" value="transparent" />
+                    <span class="theme-option-card">
+                      <strong>Transparent</strong>
+                      <small>Modern transparent overlay with a blur effect. Background stays visible behind frosted cards.</small>
+                    </span>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="overlayStyle" value="solid" />
+                    <span class="theme-option-card">
+                      <strong>Solid</strong>
+                      <small>Classic solid dark overlay for high contrast and maximum readability.</small>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Theme</legend>
+                <div class="two-column">
+                  <label>Accent Color
+                    <input type="color" name="accent" />
+                  </label>
+                  <label>Layout Style
+                    <select name="layout">
+                      <option value="editorial">Editorial — spacious, magazine-style sections</option>
+                      <option value="compact">Compact — tighter spacing, narrower column</option>
+                      <option value="directory">Directory — wide grid, ideal for lots of places</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="two-column">
+                  <label>Font Style
+                    <select name="fontStyle" id="fontStyleSelect"></select>
+                  </label>
+                  <label>Corner Style
+                    <select name="cornerStyle">
+                      <option value="square">Square — sharp, no rounding</option>
+                      <option value="soft">Soft — gently rounded corners</option>
+                      <option value="pill">Pill — fully rounded, friendly</option>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+          </div>
+        </div>
+        </form>
+      </section>
+
+      <section class="preview-panel">
+        <div class="preview-header">
+          <h3>Live Preview</h3>
+          <span id="assetSummary">0 assets</span>
+        </div>
+        <iframe id="previewFrame" title="Guidebook preview"></iframe>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<dialog id="projectManager" class="modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Load Project</h2>
+      <button type="button" class="icon-button" onclick="document.getElementById('projectManager').close()" aria-label="Close">×</button>
+    </div>
+    <label class="search-field">Search saved projects
+      <input type="search" id="projectSearch" placeholder="Search by project name or website title" />
+    </label>
+    <div class="project-rows" id="projectRows"></div>
+  </div>
+</dialog>
+
+<dialog id="settingsDialog" class="modal">
+  <div class="modal-card slim">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button type="button" class="icon-button" onclick="document.getElementById('settingsDialog').close()" aria-label="Close">×</button>
+    </div>
+    <p class="settings-copy">Guidebook Studio runs entirely offline. Projects, images, and files are stored in this browser's local database (IndexedDB) and never leave your device.</p>
+    <p class="settings-copy">Use <strong>Download My Progress</strong> regularly to back up all of your projects to a single file, and <strong>Import My Progress</strong> to restore or move them to another computer.</p>
+    <p class="settings-copy">Clearing your browser's site data for this app will permanently delete saved projects, so keep a backup if that matters to you.</p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/project.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/store.js"></script>
+<script src="js/zip.js"></script>
+<script src="js/exporter.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
