@@ -24,9 +24,35 @@
       logo: null,
       banner: null,
       backgroundImage: null,
-      sections: [
-        { id: createId('page'), title: 'Welcome', body: 'Welcome to the property. This guidebook includes arrival details, house notes, and favorite local stops.' },
-        { id: createId('page'), title: 'Before You Leave', body: 'Check windows, return keys, gather belongings, and message the host if anything needs attention.' }
+      pages: [
+        {
+          id: createId('page'),
+          title: 'Welcome',
+          slug: 'welcome',
+          icon: '',
+          coverImage: null,
+          description: 'Welcome to the property.',
+          status: 'published',
+          createdAt: now,
+          updatedAt: now,
+          blocks: [
+            { id: createId('block'), type: 'paragraph', order: 0, content: { text: 'Welcome to the property. This guidebook includes arrival details, house notes, and favorite local stops.' } }
+          ]
+        },
+        {
+          id: createId('page'),
+          title: 'Before You Leave',
+          slug: 'before-you-leave',
+          icon: '',
+          coverImage: null,
+          description: 'Departure checklist.',
+          status: 'published',
+          createdAt: now,
+          updatedAt: now,
+          blocks: [
+            { id: createId('block'), type: 'paragraph', order: 0, content: { text: 'Check windows, return keys, gather belongings, and message the host if anything needs attention.' } }
+          ]
+        }
       ],
       places: [
         { id: createId('place'), name: 'Closest Grocery', category: 'Groceries', distance: '0.8 mi', address: '', notes: 'Good stop for basics, snacks, and coffee.' },
@@ -34,24 +60,46 @@
       ],
       images: [],
       documents: [],
-      settings: { version: 2 }
+      settings: { version: 3 }
     };
   }
 
   function normalizeProject(raw) {
     const base = emptyProject();
     raw = raw || {};
-    return {
+    const project = {
       ...base,
       ...raw,
       property: { ...base.property, ...(raw.property || {}) },
       host: { ...base.host, ...(raw.host || {}) },
       theme: { ...base.theme, ...(raw.theme || {}) },
-      sections: Array.isArray(raw.sections) ? raw.sections : base.sections,
       places: Array.isArray(raw.places) ? raw.places : base.places,
       images: Array.isArray(raw.images) ? raw.images : [],
       documents: Array.isArray(raw.documents) ? raw.documents : []
     };
+
+    // Migration from sections to pages
+    if (raw.sections && !raw.pages) {
+      project.pages = raw.sections.map(s => ({
+        id: s.id || createId('page'),
+        title: s.title || 'Untitled Page',
+        slug: (s.title || 'untitled').toLowerCase().replace(/\s+/g, '-'),
+        icon: '',
+        coverImage: null,
+        description: '',
+        status: 'published',
+        createdAt: raw.createdAt || project.createdAt,
+        updatedAt: raw.updatedAt || project.updatedAt,
+        blocks: [
+          { id: createId('block'), type: 'paragraph', order: 0, content: { text: s.body || '' } }
+        ]
+      }));
+    } else {
+      project.pages = Array.isArray(raw.pages) ? raw.pages : base.pages;
+    }
+
+    delete project.sections;
+    return project;
   }
 
   window.GuidebookProject = { createId, emptyProject, normalizeProject };

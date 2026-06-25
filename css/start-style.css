@@ -64,6 +64,9 @@
   outline-offset: 2px;
 }
 
+.search-filter-bar { margin: 15px 0; }
+.search-input { width: 100%; padding: 10px 15px; border-radius: 999px; border: 1px solid var(--line); background: white; }
+
 @media (max-width: 760px) {
   .mini-meta { grid-template-columns: 1fr; }
   .tabs { padding-bottom: 14px; }
