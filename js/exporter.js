@@ -6,7 +6,7 @@
     return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
   }
 
-  function lines(value = '') { return escapeHtml(value).replace(/\n/g, '<br>'); }
+  function lines(value = '') { return String(value).replace(/\n/g, '<br>'); }
   function projectFolder(project) { return safeName(project.projectName || 'guidebook'); }
   function assetPath(asset) { return `assets/${assetFolder(asset)}/${asset.name}`; }
   function allAssets(project) { return [project.logo, project.banner, project.backgroundImage, ...(project.images || []), ...(project.documents || [])].filter(Boolean); }
@@ -20,7 +20,14 @@
     const backgroundSrc = project.backgroundImage ? (mode === 'preview' ? project.backgroundImage.dataUrl : assetPath(project.backgroundImage)) : '';
     const gallery = (project.images || []).map(img => `<figure><img src="${mode === 'preview' ? img.dataUrl : assetPath(img)}" alt="${escapeHtml(img.originalName || img.name)}"><figcaption>${escapeHtml(img.originalName || img.name)}</figcaption></figure>`).join('');
     const docs = (project.documents || []).map(doc => `<li><a href="${mode === 'preview' ? doc.dataUrl : assetPath(doc)}" download>${escapeHtml(doc.originalName || doc.name)}</a></li>`).join('');
-    const pages = (project.sections || []).map(section => `<article class="card"><h2>${escapeHtml(section.title)}</h2><p>${lines(section.body)}</p></article>`).join('');
+    const pages = (project.pages || []).filter(p => p.status === 'published').map(page => `
+      <article class="page-card card" data-page-id="${page.id}">
+        ${page.icon ? `<div class="page-card-icon">${escapeHtml(page.icon)}</div>` : ''}
+        <h3>${escapeHtml(page.title)}</h3>
+        <p>${escapeHtml(page.description || '')}</p>
+        <button type="button" class="button ghost">View Details</button>
+      </article>
+    `).join('');
     const places = (project.places || []).map(place => `<article class="place card"><p class="kicker">${escapeHtml(place.category || 'Nearby')}</p><h3>${escapeHtml(place.name)}</h3><dl><div><dt>Distance</dt><dd>${escapeHtml(place.distance || 'Add distance')}</dd></div><div><dt>Address</dt><dd>${escapeHtml(place.address || 'Address not provided')}</dd></div></dl><p>${lines(place.notes)}</p></article>`).join('');
 
     // Background image is applied via an inline style on <body> itself (not through
@@ -34,7 +41,51 @@
     const heroStyle = bannerSrc ? ` style="background-image:url('${bannerSrc}')"` : '';
     const heroClass = bannerSrc ? 'hero hero-has-banner' : 'hero';
 
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(project.title)}</title><link rel="stylesheet" href="css/style.css"></head><body style="${bodyStyleParts.join(';')}" data-layout="${escapeHtml(theme.layout || 'editorial')}" data-font="${escapeHtml(theme.fontStyle || 'mixed')}" data-corners="${escapeHtml(theme.cornerStyle || 'soft')}" data-overlay="${escapeHtml(theme.overlayStyle || 'transparent')}" data-has-bg="${backgroundSrc ? 'true' : 'false'}"><header class="${heroClass}"${heroStyle}><div class="hero-glass">${logoSrc ? `<img class="logo" src="${logoSrc}" alt="${escapeHtml(project.title)} logo">` : ''}<div><p class="kicker">${escapeHtml(project.author || h.name || 'Offline guidebook')}</p><h1>${escapeHtml(project.title)}</h1><p>${escapeHtml(project.subtitle || '')}</p></div></div></header><main><section class="intro card"><h2>About this guide</h2><p>${lines(project.description)}</p></section><section class="property card"><p class="kicker">About the Property</p><h2>${escapeHtml(p.name || project.title)}</h2><p>${lines(p.description)}</p><div class="fact-grid"><div><strong>Type</strong><span>${escapeHtml(p.type || 'Property')}</span></div><div><strong>Check-in</strong><span>${escapeHtml(p.checkIn || '')}</span></div><div><strong>Check-out</strong><span>${escapeHtml(p.checkOut || '')}</span></div></div>${p.address ? `<p><strong>Address:</strong> ${lines(p.address)}</p>` : ''}${p.houseRules ? `<h3>House Rules</h3><p>${lines(p.houseRules)}</p>` : ''}</section><section class="host card"><p class="kicker">About Host</p><h2>${escapeHtml(h.name || 'Your Host')}</h2><p>${lines(h.bio || 'Host details will appear here.')}</p><ul class="contact-list">${h.phone ? `<li><strong>Phone</strong> ${escapeHtml(h.phone)}</li>` : ''}${h.email ? `<li><strong>Email</strong> ${escapeHtml(h.email)}</li>` : ''}${h.contactNote ? `<li><strong>Note</strong> ${lines(h.contactNote)}</li>` : ''}</ul></section>${pages ? `<section><p class="kicker">Guidebook Pages</p><div class="page-grid">${pages}</div></section>` : ''}${places ? `<section><p class="kicker">Nearby Places</p><div class="place-grid">${places}</div></section>` : ''}${gallery ? `<section><p class="kicker">Gallery</p><div class="gallery">${gallery}</div></section>` : ''}${docs ? `<section class="card"><p class="kicker">Downloads</p><h2>Files and Documents</h2><ul class="downloads">${docs}</ul></section>` : ''}</main><footer>Generated offline with Guidebook Studio.</footer><script src="js/script.js"></script></body></html>`;
+    const pageDataJson = JSON.stringify((project.pages || []).filter(p => p.status === 'published').map(p => ({
+      id: p.id,
+      title: p.title,
+      icon: p.icon,
+      coverImage: p.coverImage,
+      description: p.description,
+      contentHtml: renderPageBlocks(p.blocks)
+    })));
+
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(project.title)}</title><link rel="stylesheet" href="css/style.css"></head><body style="${bodyStyleParts.join(';')}" data-layout="${escapeHtml(theme.layout || 'editorial')}" data-font="${escapeHtml(theme.fontStyle || 'mixed')}" data-corners="${escapeHtml(theme.cornerStyle || 'soft')}" data-overlay="${escapeHtml(theme.overlayStyle || 'transparent')}" data-has-bg="${backgroundSrc ? 'true' : 'false'}"><header class="${heroClass}"${heroStyle}><div class="hero-glass">${logoSrc ? `<img class="logo" src="${logoSrc}" alt="${escapeHtml(project.title)} logo">` : ''}<div><p class="kicker">${escapeHtml(project.author || h.name || 'Offline guidebook')}</p><h1>${escapeHtml(project.title)}</h1><p>${escapeHtml(project.subtitle || '')}</p></div></div></header><main><section class="intro card"><h2>About this guide</h2><p>${lines(project.description)}</p></section><section class="property card"><p class="kicker">About the Property</p><h2>${escapeHtml(p.name || project.title)}</h2><p>${lines(p.description)}</p><div class="fact-grid"><div><strong>Type</strong><span>${escapeHtml(p.type || 'Property')}</span></div><div><strong>Check-in</strong><span>${escapeHtml(p.checkIn || '')}</span></div><div><strong>Check-out</strong><span>${escapeHtml(p.checkOut || '')}</span></div></div>${p.address ? `<p><strong>Address:</strong> ${lines(p.address)}</p>` : ''}${p.houseRules ? `<h3>House Rules</h3><p>${lines(p.houseRules)}</p>` : ''}</section><section class="host card"><p class="kicker">About Host</p><h2>${escapeHtml(h.name || 'Your Host')}</h2><p>${lines(h.bio || 'Host details will appear here.')}</p><ul class="contact-list">${h.phone ? `<li><strong>Phone</strong> ${escapeHtml(h.phone)}</li>` : ''}${h.email ? `<li><strong>Email</strong> ${escapeHtml(h.email)}</li>` : ''}${h.contactNote ? `<li><strong>Note</strong> ${lines(h.contactNote)}</li>` : ''}</ul></section>${pages ? `<section><p class="kicker">Guidebook Pages</p><div class="page-grid">${pages}</div></section>` : ''}${places ? `<section><p class="kicker">Nearby Places</p><div class="place-grid">${places}</div></section>` : ''}${gallery ? `<section><p class="kicker">Gallery</p><div class="gallery">${gallery}</div></section>` : ''}${docs ? `<section class="card"><p class="kicker">Downloads</p><h2>Files and Documents</h2><ul class="downloads">${docs}</ul></section>` : ''}</main><footer>Generated offline with Guidebook Studio.</footer>
+    <dialog id="pageModal" class="modal-viewer">
+      <div class="modal-content">
+        <button type="button" class="modal-close" id="closeModal">×</button>
+        <div id="modalBody"></div>
+      </div>
+    </dialog>
+    <script>window.GUIDEBOOK_PAGES = ${pageDataJson};</script>
+    <script src="js/script.js"></script></body></html>`;
+  }
+
+  function renderPageBlocks(blocks) {
+    return (blocks || []).map(block => {
+      const c = block.content || {};
+      switch (block.type) {
+        case 'heading':
+          const align = c.align || 'left';
+          return `<${c.level || 'h2'} style="text-align:${align}">${escapeHtml(c.text)}</${c.level || 'h2'}>`;
+        case 'paragraph':
+          return `<p>${lines(c.text)}</p>`;
+        case 'image':
+          return `<figure class="block-image">${c.url ? `<img src="${escapeHtml(c.url)}" alt="${escapeAttr(c.alt)}">` : ''}${c.caption ? `<figcaption>${escapeHtml(c.caption)}</figcaption>` : ''}</figure>`;
+        case 'featureList':
+          return `<ul class="block-feature-list">${(c.items || []).map(item => `<li><span class="feature-icon">${escapeHtml(item.icon)}</span><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.description)}</p></div></li>`).join('')}</ul>`;
+        case 'gallery':
+          return `<div class="block-gallery">${(c.images || []).map(img => `<img src="${escapeHtml(img)}">`).join('')}</div>`;
+        case 'twoColumn':
+          return `<div class="block-two-column"><div>${lines(c.left)}</div><div>${lines(c.right)}</div></div>`;
+        case 'cta':
+          return `<div class="block-cta"><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.description)}</p>${c.buttonText ? `<a href="${escapeHtml(c.buttonLink)}" class="button solid">${escapeHtml(c.buttonText)}</a>` : ''}</div>`;
+        case 'custom':
+          return `<section class="block-custom">${c.title ? `<h3>${escapeHtml(c.title)}</h3>` : ''}<div>${c.html}</div></section>`;
+        default:
+          return '';
+      }
+    }).join('');
   }
 
   const FONT_PAIRINGS = {
@@ -87,6 +138,46 @@
 
     return `*{box-sizing:border-box}
 body{margin:0;font-family:${bodyFont};${pageBackground}color:${ink};line-height:1.6;min-height:100vh;background-repeat:no-repeat}
+.modal-viewer{border:0;background:transparent;padding:0;width:100%;height:100%;max-width:none;max-height:none;margin:0}
+.modal-viewer::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal-content{background:${cardBackground};color:${ink};width:min(900px,94vw);margin:40px auto;border-radius:${radiusLg};position:relative;max-height:calc(100vh - 80px);overflow-y:auto;box-shadow:0 30px 90px rgba(0,0,0,0.4);border:1px solid ${cardBorder};animation:modalSlideUp 0.4s cubic-bezier(0,0,0.2,1)}
+@keyframes modalSlideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,0.05);color:${ink};font-size:24px;cursor:pointer;z-index:10;display:grid;place-items:center;transition:background 0.2s}
+.modal-close:hover{background:rgba(0,0,0,0.1)}
+.modal-page-header{position:relative}
+.modal-cover{width:100%;height:300px;object-fit:cover;display:block}
+.modal-title-area{padding:40px 40px 20px;display:flex;align-items:center;gap:20px}
+.modal-icon{font-size:3rem}
+.modal-title-area h1{margin:0;font-family:${headingFont};font-size:clamp(2rem,5vw,3.5rem);line-height:1.1}
+.modal-page-content{padding:0 40px 40px;line-height:1.8}
+.modal-page-content p{font-size:1.1rem;margin-bottom:1.5rem}
+.page-card{cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column;gap:12px;text-align:left}
+.page-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.12)}
+.page-card-icon{font-size:2.5rem;margin-bottom:4px}
+.page-card h3{margin:0;font-size:1.5rem}
+.page-card p{margin:0;color:${muted};font-size:0.95rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.block-image{margin:2rem 0;text-align:center}
+.block-image img{max-width:100%;border-radius:${radiusMd};box-shadow:0 10px 30px rgba(0,0,0,0.1)}
+.block-image figcaption{margin-top:10px;font-style:italic;color:${muted}}
+.block-feature-list{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;margin:2rem 0}
+.block-feature-list li{display:flex;gap:16px;align-items:flex-start;background:rgba(0,0,0,0.03);padding:20px;border-radius:${radiusMd}}
+.feature-icon{font-size:1.8rem;line-height:1}
+.block-feature-list li strong{display:block;font-size:1.1rem;margin-bottom:4px}
+.block-feature-list li p{margin:0;font-size:0.95rem;line-height:1.5}
+.block-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin:2rem 0}
+.block-gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:${radiusSm}}
+.block-two-column{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin:2rem 0}
+.block-cta{background:var(--accent);color:white;padding:40px;border-radius:${radiusLg};text-align:center;margin:3rem 0}
+.block-cta h3{color:white;margin-top:0;font-size:1.8rem}
+.block-cta p{color:rgba(255,255,255,0.9);font-size:1.1rem;margin-bottom:1.5rem}
+.block-cta .button.solid{background:white;color:var(--accent);display:inline-block;padding:12px 30px;border-radius:${radiusSm};text-decoration:none;font-weight:bold}
+.block-custom{margin:2rem 0}
+@media(max-width:700px){
+  .modal-content{width:100%;height:100%;max-height:none;margin:0;border-radius:0}
+  .modal-title-area{padding:30px 20px 10px;flex-direction:column;align-items:flex-start}
+  .modal-page-content{padding:0 20px 40px}
+  .block-two-column{grid-template-columns:1fr;gap:20px}
+}
 a{color:var(--accent);font-weight:850}
 .hero{position:relative;background:${heroBackground};background-size:cover;background-position:center;color:#fffaf0;overflow:hidden}
 .hero-has-banner{background-size:cover;background-position:center}
@@ -119,7 +210,39 @@ footer{text-align:center;padding:28px;color:${overlay === 'solid' ? '#c3cdcb' : 
   }
 
   function generatedScript() {
-    return `document.querySelectorAll('a[download]').forEach(link=>link.addEventListener('click',()=>console.log('Offline resource opened:',link.getAttribute('href'))));`;
+    return `
+    const modal = document.getElementById('pageModal');
+    const modalBody = document.getElementById('modalBody');
+    const closeModal = document.getElementById('closeModal');
+
+    document.querySelectorAll('.page-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const pageId = card.dataset.pageId;
+        const page = window.GUIDEBOOK_PAGES.find(p => p.id === pageId);
+        if (page) {
+          modalBody.innerHTML = \`
+            <div class="modal-page-header">
+              \${page.coverImage ? \`<img src="\${page.coverImage}" class="modal-cover">\` : ''}
+              <div class="modal-title-area">
+                \${page.icon ? \`<span class="modal-icon">\${page.icon}</span>\` : ''}
+                <h1>\${page.title}</h1>
+              </div>
+            </div>
+            <div class="modal-page-content">\${page.contentHtml}</div>
+          \`;
+          modal.showModal();
+          document.body.style.overflow = 'hidden';
+        }
+      });
+    });
+
+    const doClose = () => { modal.close(); document.body.style.overflow = ''; };
+    closeModal.addEventListener('click', doClose);
+    modal.addEventListener('click', (e) => { if (e.target === modal) doClose(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.open) doClose(); });
+
+    document.querySelectorAll('a[download]').forEach(link=>link.addEventListener('click',()=>console.log('Offline resource opened:',link.getAttribute('href'))));
+    `;
   }
 
   function buildGuidebookZip(project) {

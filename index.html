@@ -151,14 +151,82 @@
             </div>
 
             <div class="tab-panel hidden" data-panel="pages">
-              <div class="section-toolbar">
-                <div>
-                  <h3>Guidebook Pages</h3>
-                  <p class="help-copy">Welcome notes, house instructions, local tips, checklists — add as many pages as your guide needs.</p>
+              <div id="pagesListView">
+                <div class="section-toolbar">
+                  <div>
+                    <h3>Guidebook Pages</h3>
+                    <p class="help-copy">Manage your guidebook pages. Click a page to edit its content and structure.</p>
+                  </div>
+                  <button type="button" class="button solid" id="addPageBtn">Add Page</button>
                 </div>
-                <button type="button" class="button solid" id="addSectionBtn">Add Page</button>
+                <div class="search-filter-bar">
+                  <input type="search" id="pageSearch" placeholder="Search pages..." class="search-input" />
+                </div>
+                <div class="dynamic-list" id="pagesList"></div>
               </div>
-              <div class="dynamic-list" id="sectionsList"></div>
+
+              <div id="pageEditorView" class="hidden">
+                <div class="editor-header">
+                  <button type="button" class="button ghost" id="backToPagesBtn">← Back to Pages</button>
+                  <div class="editor-header-actions">
+                    <span class="status-badge" id="pageStatusBadge">Draft</span>
+                    <button type="button" class="button solid" id="duplicatePageBtn">Duplicate</button>
+                    <button type="button" class="button danger" id="deletePageBtn">Delete Page</button>
+                  </div>
+                </div>
+
+                <fieldset class="page-meta-fieldset">
+                  <legend>Page Settings</legend>
+                  <div class="two-column">
+                    <label>Page Title
+                      <input type="text" id="editPageTitle" placeholder="e.g. Meet the Hosts" />
+                    </label>
+                    <label>Page Slug
+                      <input type="text" id="editPageSlug" placeholder="meet-the-hosts" />
+                    </label>
+                  </div>
+                  <div class="two-column">
+                    <label>Icon (emoji or short text)
+                      <input type="text" id="editPageIcon" placeholder="👋" />
+                    </label>
+                    <label>Status
+                      <select id="editPageStatus">
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>Short Description
+                    <textarea id="editPageDescription" placeholder="A brief overview of this page"></textarea>
+                  </label>
+                  <label>Cover Image URL
+                    <input type="text" id="editPageCoverImage" placeholder="https://example.com/image.jpg" />
+                  </label>
+                </fieldset>
+
+                <div class="builder-area">
+                  <div class="builder-header">
+                    <h3>Page Content</h3>
+                    <p class="help-copy">Build your page using content blocks.</p>
+                  </div>
+
+                  <div id="blocksList" class="blocks-container"></div>
+
+                  <div class="add-block-zone">
+                    <button type="button" class="button ghost" id="addBlockMenuBtn">+ Add Block</button>
+                    <div id="addBlockMenu" class="block-menu hidden">
+                      <button type="button" data-add-block="heading">Heading</button>
+                      <button type="button" data-add-block="paragraph">Paragraph (Rich Text)</button>
+                      <button type="button" data-add-block="image">Image</button>
+                      <button type="button" data-add-block="featureList">Feature List</button>
+                      <button type="button" data-add-block="gallery">Gallery</button>
+                      <button type="button" data-add-block="twoColumn">Two Columns</button>
+                      <button type="button" data-add-block="cta">Call to Action</button>
+                      <button type="button" data-add-block="custom">Custom Section</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="tab-panel hidden" data-panel="places">
