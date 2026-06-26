@@ -6,7 +6,7 @@
     return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
   }
 
-  function lines(value = '') { return String(value).replace(/\n/g, '<br>'); }
+  function lines(value = '') { return escapeHtml(value).replace(/\n/g, '<br>'); }
   function projectFolder(project) { return safeName(project.projectName || 'guidebook'); }
   function assetPath(asset) { return `assets/${assetFolder(asset)}/${asset.name}`; }
   function allAssets(project) { return [project.logo, project.banner, project.backgroundImage, ...(project.images || []), ...(project.documents || [])].filter(Boolean); }
@@ -64,27 +64,36 @@
   function renderPageBlocks(blocks) {
     return (blocks || []).map(block => {
       const c = block.content || {};
+      let html = '';
       switch (block.type) {
         case 'heading':
           const align = c.align || 'left';
-          return `<${c.level || 'h2'} style="text-align:${align}">${escapeHtml(c.text)}</${c.level || 'h2'}>`;
+          html = `<${c.level || 'h2'} style="text-align:${align}">${escapeHtml(c.text)}</${c.level || 'h2'}>`;
+          break;
         case 'paragraph':
-          return `<p>${lines(c.text)}</p>`;
+          html = `<div class="block-paragraph">${c.text || ''}</div>`;
+          break;
         case 'image':
-          return `<figure class="block-image">${c.url ? `<img src="${escapeHtml(c.url)}" alt="${escapeAttr(c.alt)}">` : ''}${c.caption ? `<figcaption>${escapeHtml(c.caption)}</figcaption>` : ''}</figure>`;
+          html = `<figure class="block-image">${c.url ? `<img src="${escapeHtml(c.url)}" alt="${escapeAttr(c.alt)}">` : ''}${c.caption ? `<figcaption>${escapeHtml(c.caption)}</figcaption>` : ''}</figure>`;
+          break;
         case 'featureList':
-          return `<ul class="block-feature-list">${(c.items || []).map(item => `<li><span class="feature-icon">${escapeHtml(item.icon)}</span><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.description)}</p></div></li>`).join('')}</ul>`;
+          html = `<ul class="block-feature-list">${(c.items || []).map(item => `<li><span class="feature-icon">${escapeHtml(item.icon)}</span><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.description)}</p></div></li>`).join('')}</ul>`;
+          break;
         case 'gallery':
-          return `<div class="block-gallery">${(c.images || []).map(img => `<img src="${escapeHtml(img)}">`).join('')}</div>`;
+          html = `<div class="block-gallery">${(c.images || []).map(img => `<img src="${escapeHtml(img)}">`).join('')}</div>`;
+          break;
         case 'twoColumn':
-          return `<div class="block-two-column"><div>${lines(c.left)}</div><div>${lines(c.right)}</div></div>`;
+          html = `<div class="block-two-column"><div>${lines(c.left)}</div><div>${lines(c.right)}</div></div>`;
+          break;
         case 'cta':
-          return `<div class="block-cta"><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.description)}</p>${c.buttonText ? `<a href="${escapeHtml(c.buttonLink)}" class="button solid">${escapeHtml(c.buttonText)}</a>` : ''}</div>`;
+          const ctaStyle = c.bgImage ? `style="background-image:linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${c.bgImage}'); background-size:cover; background-position:center; border:0;"` : '';
+          html = `<div class="block-cta" ${ctaStyle}><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.description)}</p>${c.buttonText ? `<a href="${escapeHtml(c.buttonLink)}" class="button solid">${escapeHtml(c.buttonText)}</a>` : ''}</div>`;
+          break;
         case 'custom':
-          return `<section class="block-custom">${c.title ? `<h3>${escapeHtml(c.title)}</h3>` : ''}<div>${c.html}</div></section>`;
-        default:
-          return '';
+          html = `<section class="block-custom">${c.title ? `<h3>${escapeHtml(c.title)}</h3>` : ''}<div>${c.html}</div></section>`;
+          break;
       }
+      return html ? `<div class="reveal">${html}</div>` : '';
     }).join('');
   }
 
@@ -142,6 +151,8 @@ body{margin:0;font-family:${bodyFont};${pageBackground}color:${ink};line-height:
 .modal-viewer::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .modal-content{background:${cardBackground};color:${ink};width:min(900px,94vw);margin:40px auto;border-radius:${radiusLg};position:relative;max-height:calc(100vh - 80px);overflow-y:auto;box-shadow:0 30px 90px rgba(0,0,0,0.4);border:1px solid ${cardBorder};animation:modalSlideUp 0.4s cubic-bezier(0,0,0.2,1)}
 @keyframes modalSlideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.reveal{opacity:0;transform:translateY(30px);transition:all 0.8s cubic-bezier(0.2,1,0.3,1)}
+.reveal.is-visible{opacity:1;transform:translateY(0)}
 .modal-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,0.05);color:${ink};font-size:24px;cursor:pointer;z-index:10;display:grid;place-items:center;transition:background 0.2s}
 .modal-close:hover{background:rgba(0,0,0,0.1)}
 .modal-page-header{position:relative}
@@ -215,6 +226,10 @@ footer{text-align:center;padding:28px;color:${overlay === 'solid' ? '#c3cdcb' : 
     const modalBody = document.getElementById('modalBody');
     const closeModal = document.getElementById('closeModal');
 
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if(entry.isIntersecting) entry.target.classList.add('is-visible'); });
+    }, { threshold: 0.1 });
+
     document.querySelectorAll('.page-card').forEach(card => {
       card.addEventListener('click', () => {
         const pageId = card.dataset.pageId;
@@ -232,6 +247,8 @@ footer{text-align:center;padding:28px;color:${overlay === 'solid' ? '#c3cdcb' : 
           \`;
           modal.showModal();
           document.body.style.overflow = 'hidden';
+          // Observe new blocks
+          modalBody.querySelectorAll('.reveal').forEach(el => observer.observe(el));
         }
       });
     });
@@ -257,7 +274,9 @@ footer{text-align:center;padding:28px;color:${overlay === 'solid' ? '#c3cdcb' : 
   }
 
   function previewDocument(project) {
-    return renderGuidebookHtml(project, 'preview').replace('<link rel="stylesheet" href="css/style.css">', `<style>${generatedCss(project)}</style>`).replace('<script src="js/script.js"></script>', '');
+    return renderGuidebookHtml(project, 'preview')
+      .replace('<link rel="stylesheet" href="css/style.css">', `<style>${generatedCss(project)}</style>`)
+      .replace('<script src="js/script.js"></script>', `<script>${generatedScript()}</script>`);
   }
 
   window.GuidebookExporter = { renderGuidebookHtml, generatedCss, generatedScript, buildGuidebookZip, previewDocument, FONT_PAIRINGS };

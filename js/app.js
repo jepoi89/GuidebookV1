@@ -49,10 +49,16 @@
     editPageStatus: document.getElementById('editPageStatus'),
     editPageDescription: document.getElementById('editPageDescription'),
     editPageCoverImage: document.getElementById('editPageCoverImage'),
-    pageStatusBadge: document.getElementById('pageStatusBadge')
+    pageStatusBadge: document.getElementById('pageStatusBadge'),
+    iconPicker: document.getElementById('iconPicker'),
+    iconPickerGrid: document.querySelector('.icon-picker-grid'),
+    editPageIconBtn: document.getElementById('editPageIconBtn')
   };
 
+  const ICONS = ['📄', '👋', '🏠', '✨', '📍', '🍴', '🚌', '🛒', '🔑', '🅿️', '🚭', '🐕', '📶', '🛁', '☕', '🍷', '🌳', '🌊', '🚵', '🏊', '📚', '🍳', '💡', '⏰', '🗺️', '🛎️', '💬', '📞', '❤️', '✅'];
+
   let editingPageId = null;
+  let activeIconPickerTarget = null;
 
   function field(name) { return els.form.elements[name]; }
   function showToast(message) { els.toast.textContent = message; els.toast.classList.add('show'); window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 2600); }
@@ -264,6 +270,13 @@
 
     els.form.addEventListener('input', event => {
       const target = event.target;
+      if (target.dataset.blockRichText && editingPageId) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === target.dataset.id);
+        block.content[target.dataset.blockRichText] = target.innerHTML;
+        renderPreview();
+        debouncedSave();
+      }
       if (target.dataset.blockField && editingPageId) {
         const page = project.pages.find(p => p.id === editingPageId);
         const block = page.blocks.find(b => b.id === target.dataset.id);
@@ -424,6 +437,24 @@
         block.content.images.push('');
         renderBlocks(); renderPreview();
       }
+      if (event.target.dataset.moveGalleryItemUp !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.moveGalleryItemUp);
+        if (i > 0) {
+          [block.content.images[i], block.content.images[i - 1]] = [block.content.images[i - 1], block.content.images[i]];
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
+      if (event.target.dataset.moveGalleryItemDown !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.moveGalleryItemDown);
+        if (i < block.content.images.length - 1) {
+          [block.content.images[i], block.content.images[i + 1]] = [block.content.images[i + 1], block.content.images[i]];
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
       if (event.target.dataset.removeGalleryItem) {
         const page = project.pages.find(p => p.id === editingPageId);
         const block = page.blocks.find(b => b.id === event.target.dataset.id);
@@ -454,7 +485,8 @@
       const page = project.pages.find(p => p.id === id);
       els.editPageTitle.value = page.title;
       els.editPageSlug.value = page.slug;
-      els.editPageIcon.value = page.icon;
+    els.editPageIcon.value = page.icon || '📄';
+    els.editPageIconBtn.textContent = page.icon || '📄';
       els.editPageStatus.value = page.status;
       els.editPageDescription.value = page.description;
       els.editPageCoverImage.value = page.coverImage || '';
@@ -501,11 +533,28 @@
           `;
           break;
         case 'paragraph':
-          contentHtml = `<textarea data-block-field="text" data-id="${block.id}" placeholder="Paragraph text...">${escapeHtml(c.text)}</textarea>`;
+          contentHtml = `
+            <div class="rich-text-toolbar">
+              <button type="button" class="tool-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+              <button type="button" class="tool-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+              <button type="button" class="tool-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+              <button type="button" class="tool-btn" data-cmd="insertUnorderedList" title="Bullet List">•</button>
+              <button type="button" class="tool-btn" data-cmd="createLink" title="Link">🔗</button>
+              <button type="button" class="tool-btn" data-cmd="unlink" title="Remove Link">⎌</button>
+            </div>
+            <div class="rich-text-editor" contenteditable="true" data-block-rich-text="text" data-id="${block.id}">${c.text || ''}</div>
+          `;
           break;
         case 'image':
           contentHtml = `
-            <input type="text" data-block-field="url" data-id="${block.id}" value="${escapeAttr(c.url)}" placeholder="Image URL" />
+            <div class="block-image-upload">
+              <div class="image-field-row">
+                <input type="text" data-block-field="url" data-id="${block.id}" value="${escapeAttr(c.url)}" placeholder="Image URL" />
+                <span>or</span>
+                <label class="button ghost mini file-nav">Upload<input type="file" accept="image/*" data-block-file-upload="${block.id}" class="visually-hidden" /></label>
+              </div>
+              ${c.url ? `<div class="block-image-preview"><img src="${c.url}" alt="Preview" /></div>` : ''}
+            </div>
             <div class="two-column">
               <input type="text" data-block-field="alt" data-id="${block.id}" value="${escapeAttr(c.alt)}" placeholder="Alt text" />
               <input type="text" data-block-field="caption" data-id="${block.id}" value="${escapeAttr(c.caption)}" placeholder="Caption" />
@@ -518,7 +567,7 @@
             <div class="feature-items" data-id="${block.id}">
               ${items.map((item, i) => `
                 <div class="feature-item-row">
-                  <input type="text" placeholder="Icon" data-feature-item-icon="${i}" value="${escapeAttr(item.icon)}" />
+                  <button type="button" class="icon-picker-trigger mini" data-id="${block.id}" data-index="${i}">${escapeHtml(item.icon || '✨')}</button>
                   <input type="text" placeholder="Title" data-feature-item-title="${i}" value="${escapeAttr(item.title)}" />
                   <input type="text" placeholder="Description" data-feature-item-desc="${i}" value="${escapeAttr(item.description)}" />
                   <button type="button" class="button ghost mini" data-remove-feature-item="${i}" data-id="${block.id}">×</button>
@@ -534,8 +583,14 @@
             <div class="gallery-builder" data-id="${block.id}">
               ${images.map((img, i) => `
                 <div class="gallery-item-row">
+                  <div class="gallery-item-preview">${img ? `<img src="${img}">` : ''}</div>
                   <input type="text" placeholder="Image URL" data-gallery-item-url="${i}" value="${escapeAttr(img)}" />
-                  <button type="button" class="button ghost mini" data-remove-gallery-item="${i}" data-id="${block.id}">×</button>
+                  <label class="button ghost mini file-nav">Upload<input type="file" accept="image/*" data-gallery-file-upload="${i}" data-id="${block.id}" class="visually-hidden" /></label>
+                  <div class="gallery-item-actions">
+                    <button type="button" class="button ghost mini" data-move-gallery-item-up="${i}" data-id="${block.id}" title="Move Up">↑</button>
+                    <button type="button" class="button ghost mini" data-move-gallery-item-down="${i}" data-id="${block.id}" title="Move Down">↓</button>
+                    <button type="button" class="button ghost mini" data-remove-gallery-item="${i}" data-id="${block.id}">×</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -554,6 +609,14 @@
           contentHtml = `
             <input type="text" data-block-field="title" data-id="${block.id}" value="${escapeAttr(c.title)}" placeholder="CTA Title" />
             <textarea data-block-field="description" data-id="${block.id}" placeholder="CTA Description">${escapeHtml(c.description)}</textarea>
+            <div class="block-image-upload">
+              <div class="image-field-row">
+                <input type="text" data-block-field="bgImage" data-id="${block.id}" value="${escapeAttr(c.bgImage)}" placeholder="Background Image URL" />
+                <span>or</span>
+                <label class="button ghost mini file-nav">Upload<input type="file" accept="image/*" data-cta-file-upload="${block.id}" class="visually-hidden" /></label>
+              </div>
+              ${c.bgImage ? `<div class="block-image-preview"><img src="${c.bgImage}" alt="Preview" /></div>` : ''}
+            </div>
             <div class="two-column">
               <input type="text" data-block-field="buttonText" data-id="${block.id}" value="${escapeAttr(c.buttonText)}" placeholder="Button Text" />
               <input type="text" data-block-field="buttonLink" data-id="${block.id}" value="${escapeAttr(c.buttonLink)}" placeholder="Button Link" />
@@ -568,7 +631,7 @@
           break;
       }
 
-      return `<div class="block-editor-item" data-block-id="${block.id}">
+      return `<div class="block-editor-item" data-block-id="${block.id}" draggable="true">
         <div class="block-header">
           <div class="block-header-left">
             <button type="button" class="ctrl-btn" data-toggle-block="${block.id}">▾</button>
@@ -590,6 +653,99 @@
     els.editPageStatus.addEventListener('change', updatePageStatusBadge);
     els.pageSearch.addEventListener('input', renderDynamicLists);
 
+    document.getElementById('duplicatePageBtn').addEventListener('click', () => {
+      if (!editingPageId) return;
+      const original = project.pages.find(p => p.id === editingPageId);
+      const copy = structuredClone(original);
+      copy.id = createId('page');
+      copy.title += ' (Copy)';
+      copy.slug += '-copy-' + Math.random().toString(36).slice(2, 5);
+      project.pages.push(copy);
+      renderDynamicLists(); renderPreview(); showToast('Page duplicated.');
+      debouncedSave();
+      openPageEditor(copy.id);
+    });
+
+    els.form.addEventListener('change', async (event) => {
+      const target = event.target;
+      if (target.id === 'editPageCoverUpload' && editingPageId) {
+        const [asset] = await Assets.filesToAssets(target.files, 'image');
+        if (asset) {
+          els.editPageCoverImage.value = asset.dataUrl;
+          const page = project.pages.find(p => p.id === editingPageId);
+          page.coverImage = asset.dataUrl;
+          renderPreview(); debouncedSave();
+        }
+      }
+      if (target.dataset.blockFileUpload && editingPageId) {
+        const [asset] = await Assets.filesToAssets(target.files, 'image');
+        if (asset) {
+          const page = project.pages.find(p => p.id === editingPageId);
+          const block = page.blocks.find(b => b.id === target.dataset.blockFileUpload);
+          block.content.url = asset.dataUrl;
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
+      if (target.dataset.ctaFileUpload && editingPageId) {
+        const [asset] = await Assets.filesToAssets(target.files, 'image');
+        if (asset) {
+          const page = project.pages.find(p => p.id === editingPageId);
+          const block = page.blocks.find(b => b.id === target.dataset.ctaFileUpload);
+          block.content.bgImage = asset.dataUrl;
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
+      if (target.dataset.galleryFileUpload && editingPageId) {
+        const [asset] = await Assets.filesToAssets(target.files, 'image');
+        if (asset) {
+          const page = project.pages.find(p => p.id === editingPageId);
+          const block = page.blocks.find(b => b.id === target.dataset.id);
+          block.content.images[target.dataset.galleryFileUpload] = asset.dataUrl;
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
+    });
+
+    // Drag and Drop
+    let draggedBlockId = null;
+    els.blocksList.addEventListener('dragstart', (e) => {
+      const item = e.target.closest('.block-editor-item');
+      if (item) {
+        draggedBlockId = item.dataset.blockId;
+        item.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      }
+    });
+    els.blocksList.addEventListener('dragend', (e) => {
+      const item = e.target.closest('.block-editor-item');
+      if (item) item.classList.remove('is-dragging');
+      draggedBlockId = null;
+    });
+    els.blocksList.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const item = e.target.closest('.block-editor-item');
+      if (item && item.dataset.blockId !== draggedBlockId) {
+        item.classList.add('drag-over');
+      }
+    });
+    els.blocksList.addEventListener('dragleave', (e) => {
+      const item = e.target.closest('.block-editor-item');
+      if (item) item.classList.remove('drag-over');
+    });
+    els.blocksList.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const item = e.target.closest('.block-editor-item');
+      if (item) item.classList.remove('drag-over');
+      if (item && draggedBlockId && item.dataset.blockId !== draggedBlockId) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const fromIdx = page.blocks.findIndex(b => b.id === draggedBlockId);
+        const toIdx = page.blocks.findIndex(b => b.id === item.dataset.blockId);
+        const [moved] = page.blocks.splice(fromIdx, 1);
+        page.blocks.splice(toIdx, 0, moved);
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+    });
+
     function getDefaultBlockContent(type) {
       switch (type) {
         case 'heading': return { text: 'New Heading', level: 'h2', align: 'left' };
@@ -603,6 +759,68 @@
         default: return {};
       }
     }
+
+    function setupIconPicker() {
+      els.iconPickerGrid.innerHTML = ICONS.map(icon => `<button type="button" class="icon-option" data-icon="${icon}">${icon}</button>`).join('');
+
+      document.body.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.icon-picker-trigger');
+        if (trigger) {
+          activeIconPickerTarget = trigger;
+          const rect = trigger.getBoundingClientRect();
+          els.iconPicker.style.top = `${rect.bottom + window.scrollY + 5}px`;
+          els.iconPicker.style.left = `${rect.left + window.scrollX}px`;
+          els.iconPicker.classList.remove('hidden');
+          return;
+        }
+        if (!e.target.closest('.icon-picker')) {
+          els.iconPicker.classList.add('hidden');
+        }
+      });
+
+      els.iconPickerGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.icon-option');
+        if (btn && activeIconPickerTarget) {
+          const icon = btn.dataset.icon;
+          activeIconPickerTarget.textContent = icon;
+
+          if (activeIconPickerTarget.id === 'editPageIconBtn') {
+            els.editPageIcon.value = icon;
+            const page = project.pages.find(p => p.id === editingPageId);
+            page.icon = icon;
+          } else {
+            const blockId = activeIconPickerTarget.dataset.id;
+            const index = activeIconPickerTarget.dataset.index;
+            const page = project.pages.find(p => p.id === editingPageId);
+            const block = page.blocks.find(b => b.id === blockId);
+            block.content.items[index].icon = icon;
+          }
+
+          renderPreview();
+          debouncedSave();
+          els.iconPicker.classList.add('hidden');
+        }
+      });
+    }
+
+    function setupRichText() {
+      els.blocksList.addEventListener('click', (e) => {
+        const toolBtn = e.target.closest('.tool-btn');
+        if (toolBtn) {
+          const cmd = toolBtn.dataset.cmd;
+          const val = cmd === 'createLink' ? prompt('Enter URL:') : null;
+          if (cmd === 'createLink' && !val) return;
+          document.execCommand(cmd, false, val);
+
+          // Trigger input event to save
+          const editor = toolBtn.closest('.block-editor-item').querySelector('.rich-text-editor');
+          editor.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    }
+
+    setupRichText();
+    setupIconPicker();
 
     els.projectSearch.addEventListener('input', openManager);
     els.logoInput.addEventListener('change', async () => { const [asset] = await Assets.filesToAssets(els.logoInput.files, 'image'); if (asset) project.logo = asset; els.logoInput.value = ''; renderDynamicLists(); renderPreview(); });
