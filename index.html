@@ -186,8 +186,9 @@
                     </label>
                   </div>
                   <div class="two-column">
-                    <label>Icon (emoji or short text)
-                      <input type="text" id="editPageIcon" placeholder="👋" />
+                    <label>Icon
+                      <button type="button" class="icon-picker-trigger" id="editPageIconBtn">📄</button>
+                      <input type="hidden" id="editPageIcon" value="📄" />
                     </label>
                     <label>Status
                       <select id="editPageStatus">
@@ -199,8 +200,12 @@
                   <label>Short Description
                     <textarea id="editPageDescription" placeholder="A brief overview of this page"></textarea>
                   </label>
-                  <label>Cover Image URL
-                    <input type="text" id="editPageCoverImage" placeholder="https://example.com/image.jpg" />
+                  <label>Cover Image
+                    <div class="image-field-row">
+                      <input type="text" id="editPageCoverImage" placeholder="https://example.com/image.jpg" />
+                      <span>or</span>
+                      <label class="button ghost mini file-nav">Upload<input type="file" id="editPageCoverUpload" accept="image/*" class="visually-hidden" /></label>
+                    </div>
                   </label>
                 </fieldset>
 
@@ -403,6 +408,12 @@
 </dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div id="iconPicker" class="icon-picker hidden">
+  <div class="icon-picker-grid">
+    <!-- Icons injected here -->
+  </div>
+</div>
 
 <script src="js/project.js"></script>
 <script src="js/assets.js"></script>
