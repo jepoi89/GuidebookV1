@@ -473,7 +473,33 @@ textarea::placeholder { color: #8a9996; }
 .gallery-thumb-item:hover .thumb-remove { opacity: 1; }
 
 .feature-item-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.mini { min-height: 32px; padding: 0 10px; font-size: 0.8rem; }
+.mini { min-height: 32px !important; padding: 0 10px !important; font-size: 0.8rem !important; }
+
+/* Info Block Editor Styles */
+.info-items-builder { display: grid; gap: 15px; }
+.info-card { border: 1px solid var(--line); border-radius: var(--radius-md); background: white; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.2s; }
+.info-card.is-dragging { opacity: 0.5; }
+.info-card.drag-over { border-top: 3px solid var(--accent); }
+.info-card-header { padding: 10px 15px; background: #f8fbfb; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; cursor: move; }
+.info-card-badge { width: 24px; height: 24px; background: var(--accent); color: white; border-radius: 50%; display: grid; place-items: center; font-size: 0.7rem; font-weight: bold; }
+.info-card-title-preview { font-weight: 700; font-size: 0.9rem; flex-grow: 1; color: var(--shell); }
+.info-card-toolbar { display: flex; gap: 4px; }
+.info-card-body { padding: 15px; }
+.info-card.is-collapsed .info-card-body { display: none; }
+.info-card-layout { display: grid; grid-template-columns: 180px 1fr; gap: 20px; }
+.info-card-left { display: flex; flex-direction: column; gap: 10px; }
+.image-type-selector { display: flex; gap: 10px; margin-bottom: 5px; }
+.image-type-selector label { font-size: 0.75rem; font-weight: bold; flex-direction: row; align-items: center; margin: 0; }
+.image-type-selector input { width: auto; min-height: 0; }
+.info-image-manager { display: flex; flex-direction: column; gap: 8px; }
+.info-image-preview { width: 100%; aspect-ratio: 16/9; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: #f0f0f0; position: relative; }
+.info-image-preview img { width: 100%; height: 100%; object-fit: cover; }
+.empty-image-placeholder { width: 100%; height: 100%; display: grid; place-items: center; font-size: 2rem; color: #ccc; }
+.rich-text-container { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.rich-text-container label { padding: 8px 12px 4px; margin: 0; font-size: 0.75rem; background: #f9f9f9; }
+.full-width { width: 100%; }
+.dashed { border-style: dashed; }
+
 .toast {
   position: fixed;
   right: 20px;

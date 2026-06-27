@@ -91,6 +91,20 @@
           const ctaStyle = c.bgImage ? `style="background-image:linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${c.bgImage}'); background-size:cover; background-position:center; border:0;"` : '';
           html = `<div class="block-cta" ${ctaStyle}><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.description)}</p>${c.buttonText ? `<a href="${escapeHtml(c.buttonLink)}" class="button solid">${escapeHtml(c.buttonText)}</a>` : ''}</div>`;
           break;
+        case 'infoBlock':
+          html = `<div class="block-info-grid">${(c.items || []).map(item => `
+            <div class="info-card-premium">
+              ${item.image ? `<div class="info-card-image"><img src="${escapeHtml(item.image)}" alt="${escapeAttr(item.title)}"></div>` : ''}
+              <div class="info-card-content">
+                <div class="info-card-header-row">
+                  ${item.icon ? `<span class="info-card-icon"><i data-lucide="${escapeAttr(item.icon)}"></i></span>` : ''}
+                  <h4>${escapeHtml(item.title)}</h4>
+                </div>
+                <div class="info-card-description">${item.description || ''}</div>
+              </div>
+            </div>
+          `).join('')}</div>`;
+          break;
         case 'custom':
           html = `<section class="block-custom">${c.title ? `<h3>${escapeHtml(c.title)}</h3>` : ''}<div>${c.html}</div></section>`;
           break;
@@ -195,6 +209,20 @@ body{margin:0;font-family:${bodyFont};${pageBackground}color:${ink};line-height:
 .block-cta p{color:rgba(255,255,255,0.9);font-size:1.2rem;margin-bottom:2rem;position:relative;z-index:1}
 .block-cta .button.solid{background:white;color:var(--accent);display:inline-block;padding:16px 40px;border-radius:${radiusMd};text-decoration:none;font-weight:850;font-size:1.1rem;box-shadow:0 10px 25px rgba(0,0,0,0.1);transition:all 0.3s ease;position:relative;z-index:1}
 .block-cta .button.solid:hover{transform:translateY(-3px);box-shadow:0 15px 30px rgba(0,0,0,0.15);filter:brightness(1.05)}
+.block-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin: 2.5rem 0; }
+.info-card-premium { background: ${cardBackground}; border: 1px solid ${cardBorder}; border-radius: ${radiusMd}; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); display: flex; flex-direction: column; position: relative; }
+.info-card-premium:hover { transform: translateY(-8px); box-shadow: 0 30px 60px rgba(0,0,0,0.12); border-color: var(--accent); }
+.info-card-image { width: 100%; height: 210px; overflow: hidden; }
+.info-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+.info-card-premium:hover .info-card-image img { transform: scale(1.08); }
+.info-card-content { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
+.info-card-header-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+.info-card-icon { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; }
+.info-card-icon svg { width: 22px; height: 22px; }
+.info-card-content h4 { margin: 0; font-size: 1.35rem; font-family: ${headingFont}; font-weight: 700; color: ${headingColor}; }
+.info-card-description { font-size: 1rem; line-height: 1.6; color: ${muted}; }
+.info-card-description p { margin-bottom: 0.8rem; }
+.info-card-description p:last-child { margin-bottom: 0; }
 .block-custom{margin:2rem 0}
 @media(max-width:700px){
   .modal-content{width:100%;height:100%;max-height:none;margin:0;border-radius:0}
