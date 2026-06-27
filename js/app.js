@@ -1,4 +1,7 @@
 (function () {
+  function escapeHtml(value = '') { return String(value).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])); }
+  function escapeAttr(value = '') { return escapeHtml(value).replace(/`/g, '&#096;'); }
+
   const { emptyProject, normalizeProject, createId } = window.GuidebookProject;
   const Store = window.ProjectStore;
   const Assets = window.GuidebookAssets;
@@ -52,10 +55,48 @@
     pageStatusBadge: document.getElementById('pageStatusBadge'),
     iconPicker: document.getElementById('iconPicker'),
     iconPickerGrid: document.querySelector('.icon-picker-grid'),
+    iconSearch: document.getElementById('iconSearch'),
+    iconCategory: document.getElementById('iconCategory'),
     editPageIconBtn: document.getElementById('editPageIconBtn')
   };
 
-  const ICONS = ['📄', '👋', '🏠', '✨', '📍', '🍴', '🚌', '🛒', '🔑', '🅿️', '🚭', '🐕', '📶', '🛁', '☕', '🍷', '🌳', '🌊', '🚵', '🏊', '📚', '🍳', '💡', '⏰', '🗺️', '🛎️', '💬', '📞', '❤️', '✅'];
+  const ICONS = [
+    { name: 'file-text', category: 'objects', tags: ['page', 'document', 'text'] },
+    { name: 'home', category: 'home', tags: ['house', 'property'] },
+    { name: 'map-pin', category: 'travel', tags: ['location', 'address', 'place'] },
+    { name: 'utensils', category: 'food', tags: ['restaurant', 'eat', 'dinner'] },
+    { name: 'coffee', category: 'food', tags: ['cafe', 'drink', 'breakfast'] },
+    { name: 'wifi', category: 'communication', tags: ['internet', 'connection'] },
+    { name: 'car', category: 'travel', tags: ['parking', 'drive', 'transport'] },
+    { name: 'bus', category: 'travel', tags: ['transit', 'public transport'] },
+    { name: 'shopping-cart', category: 'travel', tags: ['grocery', 'store', 'shop'] },
+    { name: 'key', category: 'home', tags: ['access', 'check-in'] },
+    { name: 'info', category: 'communication', tags: ['help', 'details'] },
+    { name: 'phone', category: 'communication', tags: ['call', 'contact'] },
+    { name: 'mail', category: 'communication', tags: ['email', 'contact'] },
+    { name: 'calendar', category: 'objects', tags: ['date', 'time', 'check-in', 'check-out'] },
+    { name: 'clock', category: 'objects', tags: ['time', 'schedule'] },
+    { name: 'sun', category: 'activity', tags: ['weather', 'outdoor'] },
+    { name: 'waves', category: 'activity', tags: ['beach', 'swim', 'water'] },
+    { name: 'mountain', category: 'activity', tags: ['hiking', 'nature', 'view'] },
+    { name: 'tree-pine', category: 'activity', tags: ['nature', 'forest', 'park'] },
+    { name: 'bike', category: 'activity', tags: ['cycling', 'transport'] },
+    { name: 'book', category: 'activity', tags: ['reading', 'library'] },
+    { name: 'camera', category: 'objects', tags: ['photo', 'sightseeing'] },
+    { name: 'lightbulb', category: 'home', tags: ['idea', 'tips'] },
+    { name: 'bell', category: 'communication', tags: ['notification', 'host'] },
+    { name: 'heart', category: 'objects', tags: ['favorite', 'love'] },
+    { name: 'check-circle', category: 'communication', tags: ['done', 'rule', 'success'] },
+    { name: 'alert-triangle', category: 'communication', tags: ['warning', 'important', 'danger'] },
+    { name: 'shield-check', category: 'home', tags: ['safety', 'security'] },
+    { name: 'trash-2', category: 'home', tags: ['bins', 'cleanup'] },
+    { name: 'bath', category: 'home', tags: ['bathroom', 'shower', 'spa'] },
+    { name: 'wind', category: 'home', tags: ['ac', 'ventilation'] },
+    { name: 'thermometer', category: 'home', tags: ['heating', 'climate'] },
+    { name: 'tv', category: 'home', tags: ['entertainment', 'media'] },
+    { name: 'sparkles', category: 'objects', tags: ['new', 'special', 'magic'] },
+    { name: 'wine', category: 'food', tags: ['drink', 'alcohol', 'bar'] }
+  ];
 
   let editingPageId = null;
   let activeIconPickerTarget = null;
@@ -121,7 +162,7 @@
     return `<article class="section-card page-item-card" data-edit-page="${page.id}">
       <header>
         <div class="page-item-info">
-          <span class="page-item-icon">${escapeHtml(page.icon || '📄')}</span>
+          <span class="page-item-icon"><i data-lucide="${page.icon || 'file-text'}"></i></span>
           <strong>${escapeHtml(page.title || 'Untitled Page')}</strong>
           <span class="status-pill ${page.status}">${page.status}</span>
         </div>
@@ -323,6 +364,18 @@
     });
 
     document.body.addEventListener('click', async event => {
+      const target = event.target;
+      if (target.dataset.replaceImage) {
+        const input = document.querySelector(`input[data-block-file-upload="${target.dataset.replaceImage}"]`);
+        if (input) input.click();
+      }
+      if (target.dataset.removeBlockImage) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === target.dataset.removeBlockImage);
+        block.content.url = '';
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+
       const actionTarget = event.target.closest('[data-action]');
       const action = actionTarget && actionTarget.dataset.action;
       if (action === 'new-project') { project = normalizeProject(emptyProject()); els.saveState.textContent = 'Not saved yet'; editingPageId = null; showPagesList(); renderAll(); showToast('New project started.'); }
@@ -333,7 +386,7 @@
       if (action === 'open-settings') els.settingsDialog.showModal();
 
       if (event.target.id === 'addPageBtn') {
-        const newPage = { id: createId('page'), title: 'New Page', slug: 'new-page-' + Date.now(), icon: '📄', status: 'draft', blocks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        const newPage = { id: createId('page'), title: 'New Page', slug: 'new-page-' + Date.now(), icon: 'file-text', status: 'draft', blocks: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
         project.pages.push(newPage);
         openPageEditor(newPage.id);
       }
@@ -422,7 +475,7 @@
       if (event.target.dataset.addFeatureItem) {
         const page = project.pages.find(p => p.id === editingPageId);
         const block = page.blocks.find(b => b.id === event.target.dataset.addFeatureItem);
-        block.content.items.push({ icon: '✨', title: 'New Item', description: '' });
+        block.content.items.push({ icon: 'sparkles', title: 'New Item', description: '' });
         renderBlocks(); renderPreview();
       }
       if (event.target.dataset.removeFeatureItem) {
@@ -485,8 +538,9 @@
       const page = project.pages.find(p => p.id === id);
       els.editPageTitle.value = page.title;
       els.editPageSlug.value = page.slug;
-    els.editPageIcon.value = page.icon || '📄';
-    els.editPageIconBtn.textContent = page.icon || '📄';
+      els.editPageIcon.value = page.icon || 'file-text';
+      els.editPageIconBtn.innerHTML = `<i data-lucide="${page.icon || 'file-text'}"></i>`;
+      lucide.createIcons({ attrs: { class: 'icon-picker-icon' }, parent: els.editPageIconBtn });
       els.editPageStatus.value = page.status;
       els.editPageDescription.value = page.description;
       els.editPageCoverImage.value = page.coverImage || '';
@@ -508,6 +562,7 @@
       const page = project.pages.find(p => p.id === editingPageId);
       if (!page) return;
       els.blocksList.innerHTML = page.blocks.map(renderBlockEditor).join('');
+      lucide.createIcons({ parent: els.blocksList });
     }
 
     function renderBlockEditor(block, index) {
@@ -551,9 +606,20 @@
               <div class="image-field-row">
                 <input type="text" data-block-field="url" data-id="${block.id}" value="${escapeAttr(c.url)}" placeholder="Image URL" />
                 <span>or</span>
-                <label class="button ghost mini file-nav">Upload<input type="file" accept="image/*" data-block-file-upload="${block.id}" class="visually-hidden" /></label>
               </div>
-              ${c.url ? `<div class="block-image-preview"><img src="${c.url}" alt="Preview" /></div>` : ''}
+              <div class="drop-zone" data-block-drop-zone="${block.id}">
+                <span class="drop-zone-prompt">Drag & drop or click to upload</span>
+                <input type="file" accept="image/*" data-block-file-upload="${block.id}" class="visually-hidden" />
+              </div>
+              ${c.url ? `
+                <div class="block-image-preview">
+                  <img src="${c.url}" alt="Preview" />
+                  <div class="image-actions-overlay">
+                    <button type="button" class="button ghost mini" data-replace-image="${block.id}">Replace</button>
+                    <button type="button" class="button danger mini" data-remove-block-image="${block.id}">Remove</button>
+                  </div>
+                </div>
+              ` : ''}
             </div>
             <div class="two-column">
               <input type="text" data-block-field="alt" data-id="${block.id}" value="${escapeAttr(c.alt)}" placeholder="Alt text" />
@@ -567,7 +633,7 @@
             <div class="feature-items" data-id="${block.id}">
               ${items.map((item, i) => `
                 <div class="feature-item-row">
-                  <button type="button" class="icon-picker-trigger mini" data-id="${block.id}" data-index="${i}">${escapeHtml(item.icon || '✨')}</button>
+                  <button type="button" class="icon-picker-trigger mini" data-id="${block.id}" data-index="${i}"><i data-lucide="${item.icon || 'sparkles'}"></i></button>
                   <input type="text" placeholder="Title" data-feature-item-title="${i}" value="${escapeAttr(item.title)}" />
                   <input type="text" placeholder="Description" data-feature-item-desc="${i}" value="${escapeAttr(item.description)}" />
                   <button type="button" class="button ghost mini" data-remove-feature-item="${i}" data-id="${block.id}">×</button>
@@ -581,20 +647,26 @@
           const images = c.images || [];
           contentHtml = `
             <div class="gallery-builder" data-id="${block.id}">
-              ${images.map((img, i) => `
-                <div class="gallery-item-row">
-                  <div class="gallery-item-preview">${img ? `<img src="${img}">` : ''}</div>
-                  <input type="text" placeholder="Image URL" data-gallery-item-url="${i}" value="${escapeAttr(img)}" />
-                  <label class="button ghost mini file-nav">Upload<input type="file" accept="image/*" data-gallery-file-upload="${i}" data-id="${block.id}" class="visually-hidden" /></label>
-                  <div class="gallery-item-actions">
-                    <button type="button" class="button ghost mini" data-move-gallery-item-up="${i}" data-id="${block.id}" title="Move Up">↑</button>
-                    <button type="button" class="button ghost mini" data-move-gallery-item-down="${i}" data-id="${block.id}" title="Move Down">↓</button>
-                    <button type="button" class="button ghost mini" data-remove-gallery-item="${i}" data-id="${block.id}">×</button>
+              <div class="block-field-group">
+                <label>Layout <select data-block-field="layout" data-id="${block.id}">
+                  <option value="grid" ${c.layout === 'grid' ? 'selected' : ''}>Grid</option>
+                  <option value="masonry" ${c.layout === 'masonry' ? 'selected' : ''}>Masonry</option>
+                  <option value="featured" ${c.layout === 'featured' ? 'selected' : ''}>Featured + Grid</option>
+                </select></label>
+              </div>
+              <div class="drop-zone" data-gallery-drop-zone="${block.id}">
+                <span class="drop-zone-prompt">Drag & drop or click to upload multiple images</span>
+                <input type="file" accept="image/*" multiple data-gallery-multi-upload="${block.id}" class="visually-hidden" />
+              </div>
+              <div class="gallery-thumbnails" data-id="${block.id}">
+                ${images.map((img, i) => `
+                  <div class="gallery-thumb-item" draggable="true" data-index="${i}" data-block-id="${block.id}">
+                    <img src="${img}" alt="Thumb" />
+                    <button type="button" class="thumb-remove" data-remove-gallery-item="${i}" data-id="${block.id}">×</button>
                   </div>
-                </div>
-              `).join('')}
+                `).join('')}
+              </div>
             </div>
-            <button type="button" class="button ghost mini" data-add-gallery-item="${block.id}">+ Add Image</button>
           `;
           break;
         case 'twoColumn':
@@ -666,25 +738,37 @@
       openPageEditor(copy.id);
     });
 
+    async function processImageUpload(file, callback) {
+      const [asset] = await Assets.filesToAssets([file], 'image');
+      if (asset) callback(asset.dataUrl);
+    }
+
     els.form.addEventListener('change', async (event) => {
       const target = event.target;
+      if (target.dataset.galleryMultiUpload && editingPageId) {
+        const files = Array.from(target.files);
+        const assets = await Assets.filesToAssets(files, 'image');
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === target.dataset.galleryMultiUpload);
+        block.content.images.push(...assets.map(a => a.dataUrl));
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+
       if (target.id === 'editPageCoverUpload' && editingPageId) {
-        const [asset] = await Assets.filesToAssets(target.files, 'image');
-        if (asset) {
-          els.editPageCoverImage.value = asset.dataUrl;
+        processImageUpload(target.files[0], (url) => {
+          els.editPageCoverImage.value = url;
           const page = project.pages.find(p => p.id === editingPageId);
-          page.coverImage = asset.dataUrl;
+          page.coverImage = url;
           renderPreview(); debouncedSave();
-        }
+        });
       }
       if (target.dataset.blockFileUpload && editingPageId) {
-        const [asset] = await Assets.filesToAssets(target.files, 'image');
-        if (asset) {
+        processImageUpload(target.files[0], (url) => {
           const page = project.pages.find(p => p.id === editingPageId);
           const block = page.blocks.find(b => b.id === target.dataset.blockFileUpload);
-          block.content.url = asset.dataUrl;
+          block.content.url = url;
           renderBlocks(); renderPreview(); debouncedSave();
-        }
+        });
       }
       if (target.dataset.ctaFileUpload && editingPageId) {
         const [asset] = await Assets.filesToAssets(target.files, 'image');
@@ -706,9 +790,72 @@
       }
     });
 
-    // Drag and Drop
+    function setupDragAndDrop() {
+      document.body.addEventListener('dragover', (e) => {
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone) {
+          e.preventDefault();
+          dropZone.classList.add('drag-over');
+        }
+      });
+
+      document.body.addEventListener('dragleave', (e) => {
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone) dropZone.classList.remove('drag-over');
+      });
+
+      document.body.addEventListener('drop', async (e) => {
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone) {
+          e.preventDefault();
+          dropZone.classList.remove('drag-over');
+          if (e.dataTransfer.files.length) {
+            const blockId = dropZone.dataset.blockDropZone;
+            const galleryId = dropZone.dataset.galleryDropZone;
+            if (blockId) {
+              processImageUpload(e.dataTransfer.files[0], (url) => {
+                const page = project.pages.find(p => p.id === editingPageId);
+                const block = page.blocks.find(b => b.id === blockId);
+                block.content.url = url;
+                renderBlocks(); renderPreview(); debouncedSave();
+              });
+            } else if (galleryId) {
+              const files = Array.from(e.dataTransfer.files);
+              const assets = await Assets.filesToAssets(files, 'image');
+              const page = project.pages.find(p => p.id === editingPageId);
+              const block = page.blocks.find(b => b.id === galleryId);
+              block.content.images.push(...assets.map(a => a.dataUrl));
+              renderBlocks(); renderPreview(); debouncedSave();
+            }
+          }
+        }
+      });
+
+      document.body.addEventListener('click', (e) => {
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone && e.target.tagName !== 'INPUT') {
+          const input = dropZone.querySelector('input[type="file"]');
+          if (input) input.click();
+        }
+      });
+    }
+
+    setupDragAndDrop();
+
+    // Gallery Drag and Drop reordering
+    let draggedThumbIndex = null;
+    let draggedThumbBlockId = null;
     let draggedBlockId = null;
+
     els.blocksList.addEventListener('dragstart', (e) => {
+      const thumb = e.target.closest('.gallery-thumb-item');
+      if (thumb) {
+        draggedThumbIndex = parseInt(thumb.dataset.index);
+        draggedThumbBlockId = thumb.dataset.blockId;
+        thumb.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        return;
+      }
       const item = e.target.closest('.block-editor-item');
       if (item) {
         draggedBlockId = item.dataset.blockId;
@@ -717,26 +864,56 @@
       }
     });
     els.blocksList.addEventListener('dragend', (e) => {
+      const thumb = e.target.closest('.gallery-thumb-item');
+      if (thumb) {
+        thumb.classList.remove('is-dragging');
+        draggedThumbIndex = null;
+        draggedThumbBlockId = null;
+        return;
+      }
+
       const item = e.target.closest('.block-editor-item');
       if (item) item.classList.remove('is-dragging');
       draggedBlockId = null;
     });
     els.blocksList.addEventListener('dragover', (e) => {
       e.preventDefault();
+      const thumb = e.target.closest('.gallery-thumb-item');
+      if (thumb && draggedThumbBlockId === thumb.dataset.blockId) {
+        thumb.classList.add('drag-over');
+        return;
+      }
+
       const item = e.target.closest('.block-editor-item');
-      if (item && item.dataset.blockId !== draggedBlockId) {
+      if (item && item.dataset.blockId !== draggedBlockId && draggedThumbBlockId === null) {
         item.classList.add('drag-over');
       }
     });
     els.blocksList.addEventListener('dragleave', (e) => {
+      const thumb = e.target.closest('.gallery-thumb-item');
+      if (thumb) {
+        thumb.classList.remove('drag-over');
+      }
       const item = e.target.closest('.block-editor-item');
       if (item) item.classList.remove('drag-over');
     });
     els.blocksList.addEventListener('drop', (e) => {
       e.preventDefault();
+      const thumb = e.target.closest('.gallery-thumb-item');
+      if (thumb) thumb.classList.remove('drag-over');
+      if (thumb && draggedThumbBlockId === thumb.dataset.blockId && draggedThumbIndex !== null) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === draggedThumbBlockId);
+        const targetIndex = parseInt(thumb.dataset.index);
+        const [moved] = block.content.images.splice(draggedThumbIndex, 1);
+        block.content.images.splice(targetIndex, 0, moved);
+        renderBlocks(); renderPreview(); debouncedSave();
+        return;
+      }
+
       const item = e.target.closest('.block-editor-item');
       if (item) item.classList.remove('drag-over');
-      if (item && draggedBlockId && item.dataset.blockId !== draggedBlockId) {
+      if (item && draggedBlockId && item.dataset.blockId !== draggedBlockId && draggedThumbBlockId === null) {
         const page = project.pages.find(p => p.id === editingPageId);
         const fromIdx = page.blocks.findIndex(b => b.id === draggedBlockId);
         const toIdx = page.blocks.findIndex(b => b.id === item.dataset.blockId);
@@ -751,8 +928,8 @@
         case 'heading': return { text: 'New Heading', level: 'h2', align: 'left' };
         case 'paragraph': return { text: '' };
         case 'image': return { url: '', alt: '', caption: '' };
-        case 'featureList': return { items: [{ icon: '✨', title: 'Feature Item', description: 'Brief description' }] };
-        case 'gallery': return { images: [] };
+        case 'featureList': return { items: [{ icon: 'sparkles', title: 'Feature Item', description: 'Brief description' }] };
+        case 'gallery': return { images: [], layout: 'grid' };
         case 'twoColumn': return { left: '', right: '' };
         case 'cta': return { title: 'Ready to Book?', description: 'Contact us now.', buttonText: 'Email Us', buttonLink: '' };
         case 'custom': return { title: 'Custom Section', html: '' };
@@ -760,8 +937,27 @@
       }
     }
 
+    function renderIconPicker() {
+      const q = (els.iconSearch.value || '').toLowerCase();
+      const cat = els.iconCategory.value;
+      const filtered = ICONS.filter(i => {
+        const matchesQuery = i.name.toLowerCase().includes(q) || i.tags.some(t => t.includes(q));
+        const matchesCat = cat === 'all' || i.category === cat;
+        return matchesQuery && matchesCat;
+      });
+
+      els.iconPickerGrid.innerHTML = filtered.map(icon => `
+        <button type="button" class="icon-option" data-icon="${icon.name}" title="${icon.name}">
+          <i data-lucide="${icon.name}"></i>
+        </button>
+      `).join('');
+      lucide.createIcons({ parent: els.iconPickerGrid });
+    }
+
     function setupIconPicker() {
-      els.iconPickerGrid.innerHTML = ICONS.map(icon => `<button type="button" class="icon-option" data-icon="${icon}">${icon}</button>`).join('');
+      renderIconPicker();
+      els.iconSearch.addEventListener('input', renderIconPicker);
+      els.iconCategory.addEventListener('change', renderIconPicker);
 
       document.body.addEventListener('click', (e) => {
         const trigger = e.target.closest('.icon-picker-trigger');
@@ -782,7 +978,8 @@
         const btn = e.target.closest('.icon-option');
         if (btn && activeIconPickerTarget) {
           const icon = btn.dataset.icon;
-          activeIconPickerTarget.textContent = icon;
+          activeIconPickerTarget.innerHTML = `<i data-lucide="${icon}"></i>`;
+          lucide.createIcons({ parent: activeIconPickerTarget });
 
           if (activeIconPickerTarget.id === 'editPageIconBtn') {
             els.editPageIcon.value = icon;
@@ -830,9 +1027,6 @@
     els.documentInput.addEventListener('change', () => handleFileUpload(els.documentInput, 'document', 'documents'));
     els.backupInput.addEventListener('change', () => els.backupInput.files[0] && importBackup(els.backupInput.files[0]));
   }
-
-  function escapeHtml(value = '') { return String(value).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])); }
-  function escapeAttr(value = '') { return escapeHtml(value).replace(/`/g, '&#096;'); }
 
   function populateFontOptions() {
     if (!els.fontStyleSelect || !Exporter.FONT_PAIRINGS) return;
