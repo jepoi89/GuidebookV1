@@ -6,6 +6,7 @@
 <title>Guidebook Studio</title>
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/start-style.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -410,6 +411,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div id="iconPicker" class="icon-picker hidden">
+  <div class="icon-picker-header">
+    <input type="search" id="iconSearch" placeholder="Search icons..." />
+    <select id="iconCategory">
+      <option value="all">All Categories</option>
+      <option value="communication">Communication</option>
+      <option value="travel">Travel & Map</option>
+      <option value="home">Home & Property</option>
+      <option value="food">Food & Drink</option>
+      <option value="activity">Activities</option>
+      <option value="objects">Objects</option>
+    </select>
+  </div>
   <div class="icon-picker-grid">
     <!-- Icons injected here -->
   </div>
