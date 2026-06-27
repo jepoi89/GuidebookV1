@@ -199,6 +199,7 @@
     const pageQuery = (els.pageSearch.value || '').toLowerCase();
     const filteredPages = project.pages.filter(p => `${p.title} ${p.description}`.toLowerCase().includes(pageQuery));
     els.pagesList.innerHTML = filteredPages.map(pageCard).join('') || '<p class="asset-empty">No pages found. Create your first page to get started!</p>';
+    lucide.createIcons({ parent: els.pagesList });
 
     els.placesList.innerHTML = project.places.map(placeCard).join('') || '<p class="asset-empty">No nearby places yet. Add restaurants, groceries, transit, or attractions.</p>';
     if (els.logoPreview) els.logoPreview.innerHTML = singleAssetTile(project.logo, 'Logo', 'data-remove-logo');
@@ -339,6 +340,19 @@
         block.content.images[target.dataset.galleryItemUrl] = target.value;
         renderPreview();
       }
+      if ((target.dataset.infoRichText || target.dataset.infoField) && editingPageId) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === target.dataset.id);
+        const item = block.content.items[target.dataset.index];
+        const field = target.dataset.infoRichText || target.dataset.infoField;
+        item[field] = target.dataset.infoRichText ? target.innerHTML : target.value;
+        if (field === 'title') {
+          const card = target.closest('.info-card');
+          if (card) card.querySelector('.info-card-title-preview').textContent = target.value || 'Untitled Item';
+        }
+        renderPreview();
+        debouncedSave();
+      }
       if (target.dataset.placeName) project.places.find(p => p.id === target.dataset.placeName).name = target.value;
       else if (target.dataset.placeCategory) project.places.find(p => p.id === target.dataset.placeCategory).category = target.value;
       else if (target.dataset.placeDistance) project.places.find(p => p.id === target.dataset.placeDistance).distance = target.value;
@@ -347,6 +361,8 @@
       renderPreview();
       debouncedSave();
     });
+
+    els.blocksList.addEventListener('input', debouncedSave);
 
     els.form.addEventListener('change', event => {
       const target = event.target;
@@ -358,6 +374,15 @@
         debouncedSave();
       }
       if (target.name === 'overlayStyle' || target.tagName === 'SELECT' || target.type === 'color' || target.id === 'editPageStatus') {
+        renderPreview();
+        debouncedSave();
+      }
+      if (target.dataset.infoImgType && editingPageId) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === target.dataset.id);
+        const item = block.content.items[target.dataset.index];
+        item.imageType = target.value;
+        renderBlocks();
         renderPreview();
         debouncedSave();
       }
@@ -490,6 +515,58 @@
         block.content.images.push('');
         renderBlocks(); renderPreview();
       }
+
+      if (event.target.dataset.addInfoItem) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.addInfoItem);
+        block.content.items.push({ id: createId('info'), title: 'New Item', description: '', icon: 'sparkles', image: '', imageType: 'url', isCollapsed: false });
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+      if (event.target.dataset.infoMoveUp !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.infoMoveUp);
+        if (i > 0) { [block.content.items[i], block.content.items[i-1]] = [block.content.items[i-1], block.content.items[i]]; renderBlocks(); renderPreview(); debouncedSave(); }
+      }
+      if (event.target.dataset.infoMoveDown !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.infoMoveDown);
+        if (i < block.content.items.length - 1) { [block.content.items[i], block.content.items[i+1]] = [block.content.items[i+1], block.content.items[i]]; renderBlocks(); renderPreview(); debouncedSave(); }
+      }
+      if (event.target.dataset.infoDuplicate !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.infoDuplicate);
+        const copy = structuredClone(block.content.items[i]);
+        copy.id = createId('info');
+        block.content.items.splice(i + 1, 0, copy);
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+      if (event.target.dataset.infoToggle !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        const i = parseInt(event.target.dataset.infoToggle);
+        block.content.items[i].isCollapsed = !block.content.items[i].isCollapsed;
+        renderBlocks();
+      }
+      if (event.target.dataset.infoRemove !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        block.content.items.splice(parseInt(event.target.dataset.infoRemove), 1);
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+      if (event.target.dataset.infoReplaceImg !== undefined) {
+        const input = document.querySelector(`input[data-info-file-upload="${event.target.dataset.id}"][data-index="${event.target.dataset.infoReplaceImg}"]`);
+        if (input) input.click();
+      }
+      if (event.target.dataset.infoRemoveImg !== undefined) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === event.target.dataset.id);
+        block.content.items[parseInt(event.target.dataset.infoRemoveImg)].image = '';
+        renderBlocks(); renderPreview(); debouncedSave();
+      }
+
       if (event.target.dataset.moveGalleryItemUp !== undefined) {
         const page = project.pages.find(p => p.id === editingPageId);
         const block = page.blocks.find(b => b.id === event.target.dataset.id);
@@ -695,6 +772,74 @@
             </div>
           `;
           break;
+        case 'infoBlock':
+          const infoItems = c.items || [];
+          contentHtml = `
+            <div class="info-items-builder" data-id="${block.id}">
+              ${infoItems.map((item, i) => `
+                <div class="info-card ${item.isCollapsed ? 'is-collapsed' : ''}" data-index="${i}" data-block-id="${block.id}" draggable="true">
+                  <div class="info-card-header">
+                    <div class="info-card-badge">${String(i + 1).padStart(2, '0')}</div>
+                    <div class="info-card-title-preview">${escapeHtml(item.title || 'Untitled Item')}</div>
+                    <div class="info-card-toolbar">
+                      <button type="button" class="ctrl-btn mini" data-info-move-up="${i}" data-id="${block.id}" title="Move Up">↑</button>
+                      <button type="button" class="ctrl-btn mini" data-info-move-down="${i}" data-id="${block.id}" title="Move Down">↓</button>
+                      <button type="button" class="ctrl-btn mini" data-info-duplicate="${i}" data-id="${block.id}" title="Duplicate">⧉</button>
+                      <button type="button" class="ctrl-btn mini" data-info-toggle="${i}" data-id="${block.id}">${item.isCollapsed ? 'Expand' : 'Collapse'}</button>
+                      <button type="button" class="ctrl-btn mini danger" data-info-remove="${i}" data-id="${block.id}">×</button>
+                    </div>
+                  </div>
+                  <div class="info-card-body">
+                    <div class="info-card-layout">
+                      <div class="info-card-left">
+                        <div class="info-image-manager">
+                          <div class="image-type-selector">
+                            <label><input type="radio" name="img-type-${block.id}-${i}" value="upload" ${item.imageType === 'upload' ? 'checked' : ''} data-info-img-type="upload" data-index="${i}" data-id="${block.id}"> Upload</label>
+                            <label><input type="radio" name="img-type-${block.id}-${i}" value="url" ${item.imageType === 'url' ? 'checked' : ''} data-info-img-type="url" data-index="${i}" data-id="${block.id}"> URL</label>
+                          </div>
+
+                          ${item.imageType === 'url' ? `
+                            <input type="text" placeholder="Image URL" data-info-field="image" data-index="${i}" data-id="${block.id}" value="${escapeAttr(item.image)}" />
+                          ` : `
+                            <div class="drop-zone mini" data-info-drop-zone="${block.id}" data-index="${i}">
+                              <span class="drop-zone-prompt">Drop or Click</span>
+                              <input type="file" accept="image/*" data-info-file-upload="${block.id}" data-index="${i}" class="visually-hidden" />
+                            </div>
+                          `}
+
+                          <div class="info-image-preview">
+                            ${item.image ? `
+                              <img src="${item.image}" alt="Preview" />
+                              <div class="image-actions-overlay">
+                                <button type="button" class="button ghost mini" data-info-replace-img="${i}" data-id="${block.id}">Replace</button>
+                                <button type="button" class="button danger mini" data-info-remove-img="${i}" data-id="${block.id}">×</button>
+                              </div>
+                            ` : `<div class="empty-image-placeholder">📷</div>`}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="info-card-right">
+                        <label>Title <input type="text" data-info-field="title" data-index="${i}" data-id="${block.id}" value="${escapeAttr(item.title)}" /></label>
+                        <label>Icon <button type="button" class="icon-picker-trigger mini" data-index="${i}" data-id="${block.id}"><i data-lucide="${item.icon || 'sparkles'}"></i></button></label>
+                        <div class="rich-text-container">
+                          <label>Description</label>
+                          <div class="rich-text-toolbar mini">
+                            <button type="button" class="tool-btn" data-cmd="bold"><b>B</b></button>
+                            <button type="button" class="tool-btn" data-cmd="italic"><i>I</i></button>
+                            <button type="button" class="tool-btn" data-cmd="insertUnorderedList">•</button>
+                            <button type="button" class="tool-btn" data-cmd="createLink">🔗</button>
+                          </div>
+                          <div class="rich-text-editor mini" contenteditable="true" data-info-rich-text="description" data-index="${i}" data-id="${block.id}">${item.description || ''}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+              <button type="button" class="button ghost dashed full-width" data-add-info-item="${block.id}">+ Add Info Item</button>
+            </div>
+          `;
+          break;
         case 'custom':
           contentHtml = `
             <input type="text" data-block-field="title" data-id="${block.id}" value="${escapeAttr(c.title)}" placeholder="Section Title" />
@@ -788,6 +933,15 @@
           renderBlocks(); renderPreview(); debouncedSave();
         }
       }
+      if (target.dataset.infoFileUpload && editingPageId) {
+        const [asset] = await Assets.filesToAssets(target.files, 'image');
+        if (asset) {
+          const page = project.pages.find(p => p.id === editingPageId);
+          const block = page.blocks.find(b => b.id === target.dataset.infoFileUpload);
+          block.content.items[target.dataset.index].image = asset.dataUrl;
+          renderBlocks(); renderPreview(); debouncedSave();
+        }
+      }
     });
 
     function setupDragAndDrop() {
@@ -812,6 +966,9 @@
           if (e.dataTransfer.files.length) {
             const blockId = dropZone.dataset.blockDropZone;
             const galleryId = dropZone.dataset.galleryDropZone;
+            const infoBlockId = dropZone.dataset.infoDropZone;
+            const infoIndex = dropZone.dataset.index;
+
             if (blockId) {
               processImageUpload(e.dataTransfer.files[0], (url) => {
                 const page = project.pages.find(p => p.id === editingPageId);
@@ -826,6 +983,13 @@
               const block = page.blocks.find(b => b.id === galleryId);
               block.content.images.push(...assets.map(a => a.dataUrl));
               renderBlocks(); renderPreview(); debouncedSave();
+            } else if (infoBlockId) {
+              processImageUpload(e.dataTransfer.files[0], (url) => {
+                const page = project.pages.find(p => p.id === editingPageId);
+                const block = page.blocks.find(b => b.id === infoBlockId);
+                block.content.items[infoIndex].image = url;
+                renderBlocks(); renderPreview(); debouncedSave();
+              });
             }
           }
         }
@@ -842,9 +1006,11 @@
 
     setupDragAndDrop();
 
-    // Gallery Drag and Drop reordering
+    // Drag and Drop reordering
     let draggedThumbIndex = null;
     let draggedThumbBlockId = null;
+    let draggedInfoIndex = null;
+    let draggedInfoBlockId = null;
     let draggedBlockId = null;
 
     els.blocksList.addEventListener('dragstart', (e) => {
@@ -853,6 +1019,14 @@
         draggedThumbIndex = parseInt(thumb.dataset.index);
         draggedThumbBlockId = thumb.dataset.blockId;
         thumb.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        return;
+      }
+      const infoCard = e.target.closest('.info-card');
+      if (infoCard) {
+        draggedInfoIndex = parseInt(infoCard.dataset.index);
+        draggedInfoBlockId = infoCard.dataset.blockId;
+        infoCard.classList.add('is-dragging');
         e.dataTransfer.effectAllowed = 'move';
         return;
       }
@@ -867,8 +1041,13 @@
       const thumb = e.target.closest('.gallery-thumb-item');
       if (thumb) {
         thumb.classList.remove('is-dragging');
-        draggedThumbIndex = null;
-        draggedThumbBlockId = null;
+        draggedThumbIndex = null; draggedThumbBlockId = null;
+        return;
+      }
+      const infoCard = e.target.closest('.info-card');
+      if (infoCard) {
+        infoCard.classList.remove('is-dragging');
+        draggedInfoIndex = null; draggedInfoBlockId = null;
         return;
       }
 
@@ -883,17 +1062,22 @@
         thumb.classList.add('drag-over');
         return;
       }
+      const infoCard = e.target.closest('.info-card');
+      if (infoCard && draggedInfoBlockId === infoCard.dataset.blockId) {
+        infoCard.classList.add('drag-over');
+        return;
+      }
 
       const item = e.target.closest('.block-editor-item');
-      if (item && item.dataset.blockId !== draggedBlockId && draggedThumbBlockId === null) {
+      if (item && item.dataset.blockId !== draggedBlockId && !draggedThumbBlockId && !draggedInfoBlockId) {
         item.classList.add('drag-over');
       }
     });
     els.blocksList.addEventListener('dragleave', (e) => {
       const thumb = e.target.closest('.gallery-thumb-item');
-      if (thumb) {
-        thumb.classList.remove('drag-over');
-      }
+      if (thumb) thumb.classList.remove('drag-over');
+      const infoCard = e.target.closest('.info-card');
+      if (infoCard) infoCard.classList.remove('drag-over');
       const item = e.target.closest('.block-editor-item');
       if (item) item.classList.remove('drag-over');
     });
@@ -911,9 +1095,21 @@
         return;
       }
 
+      const infoCard = e.target.closest('.info-card');
+      if (infoCard) infoCard.classList.remove('drag-over');
+      if (infoCard && draggedInfoBlockId === infoCard.dataset.blockId && draggedInfoIndex !== null) {
+        const page = project.pages.find(p => p.id === editingPageId);
+        const block = page.blocks.find(b => b.id === draggedInfoBlockId);
+        const targetIndex = parseInt(infoCard.dataset.index);
+        const [moved] = block.content.items.splice(draggedInfoIndex, 1);
+        block.content.items.splice(targetIndex, 0, moved);
+        renderBlocks(); renderPreview(); debouncedSave();
+        return;
+      }
+
       const item = e.target.closest('.block-editor-item');
       if (item) item.classList.remove('drag-over');
-      if (item && draggedBlockId && item.dataset.blockId !== draggedBlockId && draggedThumbBlockId === null) {
+      if (item && draggedBlockId && item.dataset.blockId !== draggedBlockId && !draggedThumbBlockId && !draggedInfoBlockId) {
         const page = project.pages.find(p => p.id === editingPageId);
         const fromIdx = page.blocks.findIndex(b => b.id === draggedBlockId);
         const toIdx = page.blocks.findIndex(b => b.id === item.dataset.blockId);
@@ -932,6 +1128,7 @@
         case 'gallery': return { images: [], layout: 'grid' };
         case 'twoColumn': return { left: '', right: '' };
         case 'cta': return { title: 'Ready to Book?', description: 'Contact us now.', buttonText: 'Email Us', buttonLink: '' };
+        case 'infoBlock': return { items: [{ id: createId('info'), title: 'Feature Title', description: '', icon: 'sparkles', image: '', imageType: 'url', isCollapsed: false }] };
         case 'custom': return { title: 'Custom Section', html: '' };
         default: return {};
       }
@@ -1010,8 +1207,9 @@
           document.execCommand(cmd, false, val);
 
           // Trigger input event to save
-          const editor = toolBtn.closest('.block-editor-item').querySelector('.rich-text-editor');
-          editor.dispatchEvent(new Event('input', { bubbles: true }));
+          const container = toolBtn.closest('.rich-text-container') || toolBtn.closest('.block-editor-item');
+          const editor = container.querySelector('.rich-text-editor');
+          if (editor) editor.dispatchEvent(new Event('input', { bubbles: true }));
         }
       });
     }
